@@ -1,63 +1,41 @@
-
+#include <ThingsBoard.h>
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
 
-#define WIFI_AP "HUAWEI nova "
-#define WIFI_PASSWORD ""
 
-#define TOKEN ""
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"
 
-// DHT
-#define DHTPIN 2
-#define DHTTYPE DHT22
+#define TOKEN "ADDRESS_TOKEN"
 
-char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP";
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";
 
 WiFiClient wifiClient;
 
-// Initialize DHT sensor.
-DHT dht(DHTPIN, DHTTYPE);
-
 PubSubClient client(wifiClient);
 
+ThingsBoard tb(wifiClient);
 int status = WL_IDLE_STATUS;
 unsigned long lastSend;
 
-void setup()
+int sensorPin = A0;
+int soilMoisture;
+
+
+void getAndSendSoilMoistureData()
 {
-  Serial.begin(115200);
-  dht.begin();
-  delay(10);
-  InitWiFi();
-  client.setServer( thingsboardServer, 1883 );
-  lastSend = 0;
-}
+  Serial.println("Collecting soil moisture data.");
 
-void loop()
-{
-  if ( !client.connected() ) {
-    reconnect();
-  }
+  // Read the Soil Mositure Sensor readings
+  soilMoisture = analogRead(sensorPin);
+  soilMoisture = map(soilMoisture,1024,0,0,100);
 
-  if ( millis() - lastSend > 1000 ) { // Update and send only after 1 seconds
-    
-    lastSend = millis();
-  }
+  Serial.println("Sending data to ThingsBoard:");
+  Serial.print("Soil Moisture: ");
+  Serial.print(soilMoisture);
+  Serial.print(" %\t");
 
-  client.loop();
-}
-
-
-
-
-  // Just debug messages
-  Serial.print( "Sending temperature and humidity : [" );
-  Serial.print( temperature ); Serial.print( "," );
-  Serial.print( humidity );
-  Serial.print( "]   -> " );
-
-
-
+  tb.sendTelemetryFloat("Soil Moisture", soilMoisture);
 }
 
 void InitWiFi()
@@ -98,4 +76,27 @@ void reconnect() {
       delay( 5000 );
     }
   }
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  delay(10);
+  InitWiFi();
+  client.setServer( thingsboardServer, 1883 );
+  lastSend = 0;
+}
+
+void loop()
+{
+  if ( !tb.connected() ) {
+    reconnect();
+  }
+
+  if ( millis() - lastSend > 1000 ) { // Update and send only after 1 seconds
+    getAndSendSoilMoistureData();
+    lastSend = millis();
+  }
+
+  tb.loop();
 }
