@@ -7,3 +7,7 @@ NODEMCU
 -------------------------------
 Access token - o2ZOgunWm4kFPNuAQNWg
 Device ID - 05a95710-b788-11e9-9890-a9cdbff27d94
+
+ESP8266 Demo GPIO
+--------------------------------
+Device ID - 2weMa8aX0odEBaL8b07q
