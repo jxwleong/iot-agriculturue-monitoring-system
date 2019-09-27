@@ -1,12 +1,10 @@
 /****************************************************************
  * Author  : Jason Leong Xie Wei
  * Contact : jason9829@live.com
- * Title : Control sensor sampling rate using rpc at 
- *         ThingsBoard
- * Hardware : NodeMCU ESP8266       
+ * Title : Control LED blink using rpc at ThingsBoard
+ * Hardware : NodeMCU ESP8266
  ****************************************************************/
 
-#include <ThingsBoard.h>
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <ESP8266WiFi.h>
@@ -23,8 +21,8 @@
 char thingsboardServer[] = "demo.thingsboard.io";
 
 WiFiClient wifiClient;
+
 PubSubClient client(wifiClient);
-ThingsBoard tb(wifiClient);
 
 // Definition for GPIO
 #define GPIO0 D2  //On board GPIO0
@@ -52,6 +50,7 @@ struct RpcType{
     TimeUnit unit;
 };
 
+
 // Global variable
 int status = WL_IDLE_STATUS;
 
@@ -59,25 +58,7 @@ int status = WL_IDLE_STATUS;
 boolean gpioState[] = {false, false, false};
 
 int interruptTimerInSecs = 500;
-int sensorPin = A0;
-int soilMoisture;
 TimeUnit unit = ms;
-
-
-
-/*
- * @desc: read soil moisture sensor and upload to ThingsBoard
- */
-void getAndSendSoilMoistureData()
-{
-
-  // Read the Soil Mositure Sensor readings
-  soilMoisture = analogRead(sensorPin);
-  soilMoisture = map(soilMoisture,1024,0,0,100);
-
-  tb.sendTelemetryFloat("Soil Moisture", soilMoisture);
-}  
-
 
 /********************RPC functions*****************/
 /*
@@ -94,6 +75,9 @@ void skipWhiteSpaces(char **str){
  * @param: string of rpc command
  */
 TimeUnit getTimeUnitInStr(char *str){
+  // example of json received from rpc remote shell (string)
+  // {"method":"sendCommand","params":{"command":"1 us"}}
+  //                                         str---^
     skipWhiteSpaces(&str);
     if(*str == 's'){
         return s;
@@ -108,7 +92,7 @@ TimeUnit getTimeUnitInStr(char *str){
         return invalid;
 }
 
- /*
+/*
  * @desc: bypass the json string and get command type in rpc remote shell
  * @param: message from rpc remote shell, bypass message length
  * @retval: pointer to the bypassed input message
@@ -151,6 +135,8 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
   strncpy (json, (char*)payload, length);
   json[length] = '\0';
 
+  Serial.print("json: ");
+  Serial.println(json);
   // example of json received from rpc remote shell
   // {"method":"sendCommand","params":{"command":"1"}}
   // command are the variable that type in the rpc remote shell
@@ -171,8 +157,6 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
   unit = dataReceived.unit;
 }
 
-
-
 /*******************Timer functions****************/
 /*
  * @desc: Calcuate the number of ticks to write into timer
@@ -188,22 +172,20 @@ uint32_t getTimerTicks(uint32_t freq, int freqDivider, int seconds){
   // get the value in Seconds then div by period
   return ticks;
   }
-  
+
 /*
  * @desc: Interrupt Service Routine when desired time is achieved
- */  
+ */ 
 void ICACHE_RAM_ATTR onTimerISR(){
     digitalWrite(GPIO0,!(digitalRead(GPIO0)));  //Toggle GPIO0 Pin
-    getAndSendSoilMoistureData(); // Upload sensor reading to ThingsBoard
     timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInSecs));
 }
-
 
 /*******************WiFi functions****************/  
 /*
  * @desc: Connect device to WiFi
  * @ref: [4.]
- */    
+ */  
 void InitWiFi() {
   Serial.println("Connecting to AP ...");
   // attempt to connect to WiFi network
@@ -215,7 +197,6 @@ void InitWiFi() {
   }
   Serial.println("Connected to AP");
 }
-
 
 /*
  * @desc: Connect device to ThingsBoard/ Reconnect to WiFi
@@ -286,7 +267,6 @@ void loop() {
 
   client.loop();
 }
-
 //References 
 // [1.] Arduino/cores/esp8266/Arduino.h 
 //      https://github.com/esp8266/Arduino/blob/master/cores/esp8266/Arduino.h

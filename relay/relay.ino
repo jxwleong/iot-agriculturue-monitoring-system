@@ -1,3 +1,10 @@
+/****************************************************************
+ * Author  : Jason Leong Xie Wei
+ * Contact : jason9829@live.com
+ * Title : Turn on Relay
+ * Hardware : Wemos D1 R2
+ ****************************************************************/
+
 void setup() {
   // put your setup code here, to run once:
   // configure pin D2 as output

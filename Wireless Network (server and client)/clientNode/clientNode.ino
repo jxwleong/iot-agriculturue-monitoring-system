@@ -1,3 +1,11 @@
+/****************************************************************
+ * Original Author  : Uteh Str (https://www.youtube.com/watch?v=O-aOnZViBzs&t=317s)
+ * Author : Jason Leong Xie Wei
+ * Conctact : jason9829@live.com
+ * Title : Client node
+ * Hardware : LoLin NodeMCU V3 ESP8266
+ ****************************************************************/
+
 #include <ESP8266WiFi.h>
 
 const char* ssid = "YOUR_WIFI_SSID";                  // Your wifi Name       
@@ -46,6 +54,7 @@ void loop() {
   
     Serial.println("Client-------------------------------");
     Serial.print("Send Command = ");
+    // Check for button pressed
       if(digitalRead(D1) == LOW && digitalRead(D2)==HIGH){
         Commands = "RELAY_OFF";
         Serial.println(Commands);

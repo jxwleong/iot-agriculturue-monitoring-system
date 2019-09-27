@@ -1,3 +1,9 @@
+/****************************************************************
+ * Author  : Uteh Str (https://www.youtube.com/watch?v=O-aOnZViBzs&t=317s)
+ * Title : Get IP Address of connected device
+ * Hardware : LoLin NodeMCU V3 ESP8266
+ ****************************************************************/
+ 
 #include <ESP8266WiFi.h>
 
 const char* ssid     = "YOUR_WIFI_SSID"; // Your WiFi ssid
