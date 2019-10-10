@@ -7,10 +7,10 @@
 #include <ESP8266WiFi.h>
 #include <string.h>
 
-const char* ssid = "HUAWEI nova 2i";                  // Your wifi Name       
-const char* password = "pdk47322"; // Your wifi Password
+const char* ssid = "YOUR_WIFI_SSID_HERE";                  // Your wifi Name       
+const char* password = "YOUR_WIFI_PASSWORD_HERE"; // Your wifi Password
 
-const char * host = "192.168.43.90";        // IP Server
+const char * host = "IP_ADDRESS_SERVER";        // IP Server
 
 const int httpPort = 80;
 
@@ -20,8 +20,8 @@ int button = 5;                             // push button is connected
 bool btn_press = true;                      // The variable to detect the button has been pressed
 int con = 0;     
 
-  int soilMoisture = 0;
-  int sensorPin = A0;
+int soilMoisture = 0;
+int sensorPin = A0;
   
 /*
  * @desc: Read soil moisture sensor reading and upload to

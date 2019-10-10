@@ -20,7 +20,7 @@
 
 #define TOKEN "ADDRESS_TOKEN"
 
-char thingsboardServer[] = "demo.thingsboard.io";
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";
 
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);

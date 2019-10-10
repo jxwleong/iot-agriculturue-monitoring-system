@@ -12,13 +12,13 @@
 #include <Ticker.h>
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
-#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
-#define TOKEN  "uUca2JippVzlqxuQ3V8B"    // Device's Token address created on ThingsBoard
-#define PARAMETER  "Soil Sensor 2"       // Parameter of device's widget on ThingsBoard
+#define TOKEN  "ADDRESS_TOKEN"              // Device's Token address created on ThingsBoard
+#define PARAMETER  "DEVICE_PARAMETER"       // Parameter of device's widget on ThingsBoard
 
-const char * host = "192.168.43.90";     // IP Server
+const char * host = "IP_ADDRESS_SERVER";     // IP Server
 
 
 // Definition for ADC
@@ -33,7 +33,7 @@ ThingsBoard tb(wifiClient);
 
 const int httpPort = 80;                 // client port
 
-char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
 
 char rpcCommand[128] ;          // rpc message key-in at ThingsBoard RPC remote shell
 String replyFromServer;         // Reply message from server after received data

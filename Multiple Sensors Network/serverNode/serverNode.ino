@@ -12,8 +12,8 @@
 #include <string.h>
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
-#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
 
 #define MAX_CLIENTS   10          // Maximum no of clients to be connected to server
@@ -21,11 +21,11 @@
 
 #define MAX_TOKEN_LENGTH    32
 
-const char * host = "192.168.43.221";       // IP Client
-String TOKEN = "rB8vcDdciynDrDTfK5wY";      // Device's Token address created on ThingsBoard
-String PARAMETER = "Server Node";           // Parameter of device's widget on ThingsBoard
+const char * host = "IP_ADDRESS_CLIENT";    // IP Client
+String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
+String PARAMETER = "DEVICE_PARAMETER";           // Parameter of device's widget on ThingsBoard
 
-char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
 
 // Global variable
 int status = WL_IDLE_STATUS;
