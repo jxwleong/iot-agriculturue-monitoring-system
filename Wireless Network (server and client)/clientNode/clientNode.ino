@@ -8,10 +8,10 @@
 
 #include <ESP8266WiFi.h>
 
-const char* ssid = "YOUR_WIFI_SSID";                  // Your wifi Name       
-const char* password = "YOUR_WIFI_PASSWORD"; // Your wifi Password
+const char* ssid = "HUAWEI nova 2i";                  // Your wifi Name       
+const char* password = "pdk47322"; // Your wifi Password
 
-const char * host = "YOUR_SERVER_IP_ADDRESS";        // IP Server
+const char * host = "192.168.43.90";        // IP Server
 
 const int httpPort = 80;
 

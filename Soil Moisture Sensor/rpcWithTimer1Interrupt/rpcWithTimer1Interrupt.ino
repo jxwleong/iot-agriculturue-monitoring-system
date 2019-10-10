@@ -18,7 +18,7 @@
 
 #define TOKEN "ADDRESS_TOKEN"
 
-char thingsboardServer[] = "demo.thingsboard.io";
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";
 
 WiFiClient wifiClient;
 
@@ -152,6 +152,7 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
   else{
   dataReceived = getRpcValInInt(data);
   Serial.println("\n Data received in int:");
+  Serial.print(dataReceived.rpcVal);
   }
   interruptTimerInSecs =  dataReceived.rpcVal;
   unit = dataReceived.unit;
@@ -267,7 +268,7 @@ void loop() {
 
   client.loop();
 }
-//References 
+// References 
 // [1.] Arduino/cores/esp8266/Arduino.h 
 //      https://github.com/esp8266/Arduino/blob/master/cores/esp8266/Arduino.h
 // [2.] Arduino/cores/esp8266/core_esp8266_timer.cpp 
