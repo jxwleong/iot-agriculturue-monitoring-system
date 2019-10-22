@@ -27,5 +27,10 @@ Server Node
 Access token - rB8vcDdciynDrDTfK5wY
 Device ID - 43f651c0-e588-11e9-b47f-e36735dd4e11
 
+Relay Node
+--------------------------------
+Access token - yIXyjYSSWZupo67gw1p4
+Device ID - b5b07a90-f49f-11e9-9790-7f438c0cbd6e
+
 
 
