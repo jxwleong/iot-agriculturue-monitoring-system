@@ -25,7 +25,8 @@
 
 #define MAX_TOKEN_LENGTH    32
 
-const char * host = "IP_ADDRESS_CLIENT";    // IP Client
+#define NUMBER_OF_CLIENTS    2 // Maximum number of sensor nodes to connect to server
+//const char * host = "IP_ADDRESS_CLIENT";    // IP Client
 String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
 String PARAMETER = "DEVICE_PARAMETER";           // Parameter of device's widget on ThingsBoard
 
@@ -43,7 +44,7 @@ ThingsBoard tb(wifiClient);
 
 WiFiClient clients[MAX_CLIENTS];
 
-const char Commands_Reply[] = "Received data";                // The command message that is sent to the client
+char Commands_Reply[] = "Received data";                // The command message that is sent to the client
 char rpc_Reply[] = "No rpc command from ThingsBoard";   // Message to sent to the client with Commands_Reply
 // char* : cause unexpected behaviour
 int i = 0;
@@ -128,6 +129,60 @@ void changeServerReplyMessageRpc(char *rpcReply){
   Serial.print("\n");
 }
 
+/*
+ * @desc: Receive data from connected clients and reply 
+ *        with message
+ */
+void getDataFromClientsAndReply(){
+  // Check if a client has connected
+  clients[i] = server.available();
+  if (!clients[i]) {
+    return;
+  }
+
+  // Wait until the client sends some data
+  Serial.println("Server-------------------------------");
+  Serial.println("New client");
+  Serial.print("From client = ");
+  Serial.print(clients[i].remoteIP());      // Display client IP address
+  while(!clients[i].available()){           // Wait until client available
+    delay(1);
+  }
+
+  // Read the first line of the request -------------------------------------
+   String req = clients[i].readStringUntil('\n');   // Read the message request(data) from client node
+   Serial.print("\nData from client: ");            // Print message from client node
+   Serial.print(req);
+   Serial.print("%\n");
+   int soilMoisture = req.toInt();          // Convert the data from string to integer 
+    
+
+   //Command -------------------------------------------------------------
+    Serial.print("Server send = ");
+    sprintf(Commands_Reply, "Received data");  // Reply to client after receive data.
+    Serial.println(Commands_Reply);
+    Serial.println(rpc_Reply);
+    clients[i].print(Commands_Reply);       // Send reply messages to client
+    clients[i].print(rpc_Reply);
+    changeServerReplyMessageRpc("No rpc command from ThingsBoard");  // Change the reply messages(rpc message will change
+                                                                     // on callback function thus need to reset default message
+    
+    clients[i].flush();           // Wait until all data was sent
+    Serial.println("-------------------------------------");
+    Serial.println("");
+}
+
+/*
+ * @desc: Call function to get data from clients
+ * @param: Number of clients(sensor nodes)
+ */
+void clientHandler(int noOfClients){
+  for(int j=0; j<noOfClients; j++){
+      getDataFromClientsAndReply(); // get the data from clients
+      i++;
+    }
+   i = 0;   // Reset the client counter
+  }
 /********************RPC functions*****************/
 /*
  * @desc: The callback for when a PUBLISH message is received from the server.
@@ -220,43 +275,8 @@ void loop() {
   if ( !client.connected() ) {
     reconnect();
   }
-  // Check if a client has connected
-  clients[i] = server.available();
-  if (!clients[i]) {
-    return;
-  }
+  clientHandler(NUMBER_OF_CLIENTS);
 
-  // Wait until the client sends some data
-  Serial.println("Server-------------------------------");
-  Serial.println("New client");
-  Serial.print("From client = ");
-  Serial.print(clients[i].remoteIP());      // Display client IP address
-  while(!clients[i].available()){           // Wait until client available
-    delay(1);
-  }
-
-  // Read the first line of the request -------------------------------------
-   String req = clients[i].readStringUntil('\n');   // Read the message request(data) from client node
-   Serial.print("\nData from client: ");            // Print message from client node
-   Serial.print(req);
-   Serial.print("%\n");
-   int soilMoisture = req.toInt();          // Convert the data from string to integer 
-    
-
-   //Command -------------------------------------------------------------
-    Serial.print("Server send = ");
-    Serial.println(Commands_Reply);
-    Serial.println(rpc_Reply);
-    clients[i].print(Commands_Reply);       // Send reply messages to client
-    clients[i].print(rpc_Reply);
-    changeServerReplyMessageRpc("No rpc command from ThingsBoard");  // Change the reply messages(rpc message will change
-                                                                     // on callback function thus need to reset default message
-    clients[i].flush();           // Wait until all data was sent
-    Serial.println("-------------------------------------");
-    Serial.println("");
-
-
-  //clients[i].stop();
   
 
   client.loop();

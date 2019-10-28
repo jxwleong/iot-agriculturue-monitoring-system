@@ -16,13 +16,13 @@
 #include <Ticker.h>
 
 // Definition for WiFi
-#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
+#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
+#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
 
-#define TOKEN  "ADDRESS_TOKEN"              // Device's Token address created on ThingsBoard
+#define TOKEN  "9XsTWu7cnzt2Ntso9X67"              // Device's Token address created on ThingsBoard
 #define PARAMETER  "DEVICE_PARAMETER"       // Parameter of device's widget on ThingsBoard
 
-const char * host = "IP_ADDRESS_SERVER";     // IP Server
+const char * host = "192.168.43.21";     // IP Server
 
 
 // Definition for ADC
@@ -37,7 +37,7 @@ ThingsBoard tb(wifiClient);
 
 const int httpPort = 80;                 // client port
 
-char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
+char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
 
 char rpcCommand[128] ;          // rpc message key-in at ThingsBoard RPC remote shell
 String replyFromServer;         // Reply message from server after received data
@@ -169,6 +169,48 @@ void getAndSendSoilMoistureToServerNodeAndThingsBoard()
   
 }
 
+/*
+ * @desc: send fake data to server node
+ * @param: soil sensor reading
+ */
+void sendFakeDataToServerNode(int data){
+  Serial.println("\nSending data to server.");
+
+  // Use WiFiClient class to create TCP connections
+  WiFiClient client;
+  
+  if (!client.connect(host, httpPort)) {    // Connect to server (return 1 if connected)
+    Serial.println("Connection failed");
+    return;
+  }
+  // We now create a URI for the request  
+  Serial.print("Sending: ");
+  Serial.print(data);
+  Serial.print("\n");
+
+  // This will send the request to the server
+  client.print(String("GET ") + data + "\r\n"); // send request(data) to server node
+                                                        // it's important to sent "\r\n" else 
+                                                        // server reply wont received.
+  Serial.print("Server IP: ");
+  Serial.print(client.remoteIP());          // Display connected server's IP
+  Serial.print('\n');
+  unsigned long timeout = millis();
+  while (client.available() == 0) {         // wait until server is available
+    if (millis() - timeout > 5000) {      
+      Serial.println(">>> Client Timeout !");
+      client.stop();
+      return;
+    }
+  }
+
+  Serial.print("Server Reply = "); 
+  // Read all the lines of the reply from server and print them to Serial
+  while(client.available()){
+    replyFromServer = client.readStringUntil('\r');
+    Serial.println(replyFromServer);
+  }
+}
 /*******************WiFi functions****************/  
 /*
  * @desc: Connect device to WiFi
@@ -231,7 +273,7 @@ void loop() {
     reconnect();
   }
   getAndSendSoilMoistureToServerNodeAndThingsBoard();
-  
+  sendFakeDataToServerNode(0);
   tb.loop();
 }
 
