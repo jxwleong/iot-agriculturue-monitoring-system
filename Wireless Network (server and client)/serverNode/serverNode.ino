@@ -4,6 +4,10 @@
  * Conctact : jason9829@live.com
  * Title : Server node
  * Hardware : LoLin NodeMCU V3 ESP8266
+ * Library Version:
+ *  ArduinoJson : Version 5.13.5
+ *  ThingsBoard : Version 0.2.0
+ *  PubSubClient : Version 2.7.0
  ****************************************************************/
 
 #include <ESP8266WiFi.h>

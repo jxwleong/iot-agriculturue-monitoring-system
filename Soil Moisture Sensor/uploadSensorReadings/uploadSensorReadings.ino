@@ -3,6 +3,10 @@
  * Contact : jason9829@live.com
  * Title : Send Soil Moisture readings to ThingsBoard
  * Hardware : NodeMCU ESP8266
+ * Library Version:
+ *  ArduinoJson : Version 5.13.5
+ *  ThingsBoard : Version 0.2.0
+ *  PubSubClient : Version 2.7.0
  ****************************************************************/
 
 #include <ThingsBoard.h>
