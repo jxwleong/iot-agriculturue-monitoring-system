@@ -13,9 +13,9 @@
 
 // Update these with values suitable for your network.
 
-const char* ssid = "HUAWEI nova 2i";
-const char* password = "pdk47322";
-const char* mqtt_server = "192.168.43.21";
+const char* ssid = "YOUR_WIFI_SSID_HERE";
+const char* password = "YOUR_WIFI_PASSWORD_HERE";
+const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";
 
 WiFiClient espClient;
 PubSubClient client(espClient);

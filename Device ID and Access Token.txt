@@ -22,6 +22,16 @@ Soil Sensor 2
 Access token - uUca2JippVzlqxuQ3V8B
 Device ID - 21fe07c0-e588-11e9-bc72-e9d230655396
 
+Temperature Sensor 1
+--------------------------------
+Access token - fnUM2jlBkfmLaji3fckj
+Device ID - 077b6170-fa43-11e9-9cef-cf7397cc2c36
+
+Temperature Sensor 2
+--------------------------------
+Access token - dKna5aeSUXgmuVzcO5tb
+Device ID - 12ab2670-fa43-11e9-ad54-7f438c0cbd6e
+
 Server Node
 --------------------------------
 Access token - rB8vcDdciynDrDTfK5wY
@@ -31,6 +41,16 @@ Relay Node
 --------------------------------
 Access token - yIXyjYSSWZupo67gw1p4
 Device ID - b5b07a90-f49f-11e9-9790-7f438c0cbd6e
+ 
+Sensor Node 1
+--------------------------------
+Access token - myK95Gukz0hUpkltxzMd
+Device ID - 7550ae60-fa45-11e9-ad54-7f438c0cbd6e
+
+Sensor Node 2
+--------------------------------
+Access token - yZBj7JYrUTW9xsCQWu4v
+Device ID - 7bbc82b0-fa45-11e9-9cef-cf7397cc2c36
 
 
 

@@ -124,6 +124,19 @@ void sendFakeDataToServerNode(int data){
   }
 }
 
+/*
+ * @desc: Upload sensor reading to ThingsBoard and display on widget
+ * @param: sensor reading, parameter created on ThingsBoard
+ */
+void uploadReadingsToThingsBoard(int sensorData, char *deviceParameter){
+  Serial.println("Sending data to ThingsBoard:");
+  Serial.print("Soil Moisture: ");
+  Serial.print(sensorData);
+  Serial.print(" %\t");
+
+  tb.sendTelemetryFloat(deviceParameter, sensorData);   // Upload data to ThingsBoard
+  } 
+  
 /*******************WiFi functions****************/  
 /*
  * @desc: Connect device to WiFi
@@ -186,7 +199,9 @@ void loop() {
     reconnect();
   }
   sendFakeDataToServerNode(50);
+  uploadReadingsToThingsBoard(random(0,50), PARAMETER_SOIL_MOSITURE);
   sendFakeDataToServerNode(10);
+  uploadReadingsToThingsBoard(random(-5,50), PARAMETER_TEMPERATURE);
   tb.loop();
 }
 

@@ -161,7 +161,7 @@ void getAndSendSoilMoistureToServerNodeAndThingsBoard()
   int sensorPin = A0;
   Serial.println("\nClient-------------------------------");
   soilMoisture = getSoilMoisturePercentage(ADC_10_BIT_RESOLUTION, sensorPin);   // Get sensor reading
-  uploadReadingsToThingsBoard(soilMoisture, PARAMETER);     // Upload obtained reading to ThingsBoard
+  uploadReadingsToThingsBoard(soilMoisture, PARAMETER_SOIL_MOSITURE);     // Upload obtained reading to ThingsBoard
   sendSoilMoistureToServerNode(soilMoisture);               // Sent sensor reading to server node
   rpcHandler();           // Take action based on rpc messages(from ThingsBoard remote shell),
                           // ignore by default(no rpc request from ThingsBoard)
@@ -274,6 +274,7 @@ void loop() {
   }
   getAndSendSoilMoistureToServerNodeAndThingsBoard();
   sendFakeDataToServerNode(0);
+  uploadReadingsToThingsBoard(random(-5,50), PARAMETER_TEMPERATURE);
   tb.loop();
 }
 

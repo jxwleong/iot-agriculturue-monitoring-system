@@ -32,8 +32,8 @@
 /*
  * Your WiFi config here
  */
-char ssid[] = "HUAWEI nova 2i";     // your network SSID (name)
-char pass[] = "pdk47322"; // your network password
+char ssid[] = "YOUR_WIFI_SSID_HERE";     // your network SSID (name)
+char pass[] = "YOUR_WIFI_PASSWORD_HERE"; // your network password
 bool WiFiAP = false;      // Do yo want the ESP as AP?
 
 /*
