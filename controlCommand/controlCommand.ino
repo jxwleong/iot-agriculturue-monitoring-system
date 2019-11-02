@@ -1,9 +1,9 @@
 /****************************************************************
  * Author  : Jason Leong Xie Wei
  * Contact : jason9829@live.com
- * Title : Turn on/ off LED or get command(int) using rpc on 
+ * Title : Turn on/ off relay using rpc on 
  *         ThingsBoard
- * Hardware : NodeMCU ESP8266
+ * Hardware : Wemos D1 R2
  * Library Version:
  *  ArduinoJson : Version 5.13.5
  *  ThingsBoard : Version 0.2.0
@@ -17,29 +17,25 @@
 #include <string.h>
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"
-#define WIFI_PASSWORD "pdk47322"
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"
 
-#define TOKEN "lqT7NtbuQVLP08sOhCIa"
+#define TOKEN "ADDRESS_TOKEN"
 
-char thingsboardServer[] = "demo.thingsboard.io";
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";
 
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
 
 int status = WL_IDLE_STATUS;
 
-// Definition for GPIO
-#define GPIO0 D2
-#define GPIO1 D3
-#define GPIO2 D1
 
-#define GPIO0_PIN D2
-#define GPIO1_PIN D3
-#define GPIO2_PIN D1
+// Assume relay are off 
+boolean relayState[] = {false};
 
-// We assume that all GPIOs are LOW
-boolean gpioState[] = {false, false, false};
+// GPIO definition
+#define RELAY_IO    D3
+#define RELAY_PIN   1    // Pin declared at Thingsboard Widget
 
 /********************RPC functions*****************/
 /*
@@ -81,32 +77,65 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
   Serial.println("\nMessage from server received.");
 
   char json[length + 1];
-  char *data;
+  char *command;
   long dataInInt;
   strncpy (json, (char*)payload, length);
   json[length] = '\0';
 
+  Serial.print("Topic: ");
+  Serial.println(topic);
   Serial.print("json: ");
   Serial.println(json);
+
   // example of json received from rpc remote shell
   // {"method":"sendCommand","params":{"command":"1"}}
   // command are the variable that type in the rpc remote shell
   // since json is in string, we can bypass it by 44 characters to gt
   // "1"
-  data = getRpcCommandInStr(json, 44);
-  if(strstr(data, "turn on led")){
-    digitalWrite(GPIO2_PIN, 1);
+  command = getRpcCommandInStr(json, 44);
+  
+  if(strstr(command, "turn on relay")){
+    digitalWrite(RELAY_IO, 1);
+    relayState[0] = HIGH;     // update relay status on ThingsBoard
+    client.publish("v1/devices/me/attributes", get_relay_status().c_str());
     }
-  else if(strstr(data, "turn off led")){
-    digitalWrite(GPIO2_PIN, 0);
+  else if(strstr(command, "turn off relay")){
+    digitalWrite(RELAY_IO, 0);
+    relayState[0] = LOW;     // update relay status on ThingsBoard
+    client.publish("v1/devices/me/attributes", get_relay_status().c_str());
     }
-  else{
-  dataInInt = getRpcValInInt(data);
-  Serial.println("\n Data received in int:");
-  Serial.println(dataInInt);
-  }
+    
 }
 
+/*******************GPIO functions****************/  
+/*
+ * @desc: Get the relay pin status
+ */ 
+String get_relay_status() {
+  // Prepare gpio JSON payload string
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& data = jsonBuffer.createObject();
+  data[String(RELAY_PIN)] = relayState[0] ? true : false;
+  char payload[256];
+  data.printTo(payload, sizeof(payload));
+  String strPayload = String(payload);
+  Serial.print("Get relay pin status: ");
+  Serial.println(strPayload);
+  return strPayload;
+}
+
+/*
+ * @desc: Set the relay pin status
+ * @param: Relay pin, data to write (HIGH/ LOW)
+ */ 
+void set_relay_status(int pin, boolean enabled) {
+  if (pin == RELAY_PIN) {
+    // Output Relay state
+    digitalWrite(RELAY_IO, enabled ? HIGH : LOW);
+    // Update Relay state
+    relayState[0] = enabled;
+  }
+}
 /*******************WiFi functions****************/
 /*
  * @desc: Connect device to WiFi
@@ -143,13 +172,11 @@ void reconnect() {
     }
     Serial.print("Connecting to ThingsBoard node ...");
     // Attempt to connect (clientId, username, password)
-    if ( client.connect("ESP8266 Device", TOKEN, NULL) ) {
+    if ( client.connect("Relay Node", TOKEN, NULL) ) {
       Serial.println( "[DONE]" );
       // Subscribing to receive RPC requests
       client.subscribe("v1/devices/me/rpc/request/+");
-      // Sending current GPIO status
-     // Serial.println("Sending current GPIO status ...");
-      //client.publish("v1/devices/me/attributes", get_gpio_status().c_str());
+      client.publish("v1/devices/me/attributes", get_relay_status().c_str());
     } else {
       Serial.print( "[FAILED] [ rc = " );
       Serial.print( client.state() );
@@ -164,9 +191,7 @@ void reconnect() {
 void setup() {
   Serial.begin(115200);
   // Set output mode for all GPIO pins
-  pinMode(GPIO0, OUTPUT);
-  pinMode(GPIO1, OUTPUT);
-  pinMode(GPIO2, OUTPUT);
+  pinMode(RELAY_IO, OUTPUT);
   delay(10);
   InitWiFi();    
   client.setServer( thingsboardServer, 1883 );
@@ -174,6 +199,7 @@ void setup() {
 }
 
 void loop() {
+  StaticJsonBuffer<200> jsonBuffer;
   if ( !client.connected() ) {
     reconnect();
   }

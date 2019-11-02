@@ -37,17 +37,17 @@ Server Node
 Access token - rB8vcDdciynDrDTfK5wY
 Device ID - 43f651c0-e588-11e9-b47f-e36735dd4e11
 
-Relay Node
+Relay Node (Wemos D1 R2)
 --------------------------------
 Access token - yIXyjYSSWZupo67gw1p4
 Device ID - b5b07a90-f49f-11e9-9790-7f438c0cbd6e
  
-Sensor Node 1
+Sensor Node 1 (NodeMCU - old)
 --------------------------------
 Access token - myK95Gukz0hUpkltxzMd
 Device ID - 7550ae60-fa45-11e9-ad54-7f438c0cbd6e
 
-Sensor Node 2
+Sensor Node 2 (NodeMCU - new)
 --------------------------------
 Access token - yZBj7JYrUTW9xsCQWu4v
 Device ID - 7bbc82b0-fa45-11e9-9cef-cf7397cc2c36

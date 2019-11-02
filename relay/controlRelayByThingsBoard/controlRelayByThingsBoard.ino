@@ -20,7 +20,6 @@
 #define TOKEN  "ADDRESS_TOKEN"              // Device's Token address created on ThingsBoard
 
 // GPIO definition
-
 #define RELAY_IO    D3
 #define RELAY_PIN   1    // Pin declared at Thingsboard Widget
 

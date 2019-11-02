@@ -19,8 +19,9 @@
 #define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
-#define TOKEN  "ADDRESS_TOKEN"              // Device's Token address created on ThingsBoard
-#define PARAMETER  "DEVICE_PARAMETER"       // Parameter of device's widget on ThingsBoard
+#define TOKEN  "ADDRESS_TOKEN"              	       // Device's Token address created on ThingsBoard
+#define PARAMETER_SOIL_MOSITURE  "Soil Moisture"       // Parameter of device's widget on ThingsBoard
+#define PARAMETER_TEMPERATURE  "Temperature"  
 
 const char * host = "IP_ADDRESS_SERVER";     // IP Server
 
