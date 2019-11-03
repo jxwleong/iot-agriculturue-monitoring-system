@@ -53,7 +53,7 @@ void getAndSendSoilMoistureData()
   Serial.print(soilMoisture);
   Serial.print(" %\t");
 
-  tb.sendTelemetryFloat("Soil Moisture", soilMoisture);
+  tb.sendTelemetryFloat("SoilMoisture", soilMoisture);
 }
 
 /*

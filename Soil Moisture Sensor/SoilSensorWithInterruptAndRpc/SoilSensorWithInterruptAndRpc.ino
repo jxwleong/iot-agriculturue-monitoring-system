@@ -79,7 +79,7 @@ void getAndSendSoilMoistureData()
   soilMoisture = analogRead(sensorPin);
   soilMoisture = map(soilMoisture,1024,0,0,100);
 
-  tb.sendTelemetryFloat("Soil Moisture", soilMoisture);
+  tb.sendTelemetryFloat("SoilMoisture", soilMoisture);
 }  
 
 
