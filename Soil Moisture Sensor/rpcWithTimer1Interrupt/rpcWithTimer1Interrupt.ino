@@ -255,7 +255,7 @@ void setup()
     // Since the max ticks is 8388607 stated from https://github.com/esp8266/Arduino/blob/master/cores/esp8266/Arduino.h#L114
     // Thus the max time for TIM_DIV16 is limited around 1.6s
     // 1600 / (1/5M) = 8000000
-    // To get more time range for the interrupt, TIM_DIV265 is used
+    // To get more time range for the interrupt, TIM_DIV256 is used
     // Time = ticks * (1 / CPU_FREQ)
     //      = 8000000 * (1 / 80M/256)
     //      = 25.6s

@@ -18,7 +18,7 @@
 #include <string.h>
 
 // Definition for WiFi
-#define WIFI_AP "OUR_WIFI_SSID_HERE"
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"
 
 #define TOKEN "ADDRESS_TOKEN"
@@ -38,7 +38,7 @@ int status = WL_IDLE_STATUS;
 #define TIM_FREQ_DIV16   16
 #define TIM_FREQ_DIV256   256
 
-int interruptTimerInMilliS = 500000;
+int interruptTimerInMilliS = 5000;
 
 // Assume relay are off 
 boolean relayState[] = {false};
@@ -97,8 +97,7 @@ void ICACHE_RAM_ATTR onTimerISR(){
     sleepStatus = AWAKE;
     Serial.println("I'm awake!");
     }
-    //timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV16, interruptTimerInMilliS)); // write 0.5s ticks
-    timer1_write(25000000);
+    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
 }
 
 
@@ -304,7 +303,9 @@ void switchPowerMode(PowerMode powerMode){
         case LIGHT_SLEEP:   break;  // Turn off System Clock
         case DEEP_SLEEP:   break;   // Everything off except RTC
         default: Serial.println("Invalid power mode chosen!");
-    }   
+    } // Rewrite timer1 number of ticks so to get the correct delay
+      // Number of ticks may be decrement before this function called.  
+      timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS));
 }  
 
 /**
@@ -374,15 +375,15 @@ void setup() {
   Serial.begin(115200);
   // Set output mode for all GPIO pins
   pinMode(RELAY_IO, OUTPUT);
+    //Initialize Ticker every 0.5s
+  timer1_attachInterrupt(onTimerISR);
+  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
+  timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS));
  // delay(10);
   InitWiFi();    
   client.setServer( thingsboardServer, 1883 );
   client.setCallback(on_message);
-  //Initialize Ticker every 0.5s
-   timer1_attachInterrupt(onTimerISR);
-   timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
-   //timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV16, interruptTimerInMilliS)); // write 5s 
-   timer1_write(25000000);
+
 }
 
 void loop() {
