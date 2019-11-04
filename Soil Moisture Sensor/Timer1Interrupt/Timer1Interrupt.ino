@@ -24,7 +24,8 @@ Ticker blinker;
 #define TIM_FREQ_DIV16   16
 #define TIM_FREQ_DIV256   256
 
-int interruptTimerInMilliS = 1000;
+
+int interruptTimerInMilliS = 500;
 
 /*
  * @desc: Calcuate the number of ticks to write into timer
@@ -48,7 +49,7 @@ uint32_t getTimerTicks(uint32_t freq, int freqDivider, int milliSeconds){
 void ICACHE_RAM_ATTR onTimerISR(){
     Serial.println("500ms is up!");
     digitalWrite(LED,!(digitalRead(LED)));  //Toggle LED Pin
-    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV16, interruptTimerInMilliS)); // write 0.5s ticks
+    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
 }
 
 
@@ -61,8 +62,8 @@ void setup()
 
     //Initialize Ticker every 0.5s
     timer1_attachInterrupt(onTimerISR);
-    timer1_enable(TIM_DIV16, TIM_EDGE, TIM_SINGLE);
-    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV16, interruptTimerInMilliS)); // write 0.5s ticks
+    timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
+    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
     // 1/F = period
     // Desired time / period = desired ticks
 }
@@ -70,7 +71,7 @@ void setup()
 void loop()
 {
     //timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV16, 100)); // write 0.5s ticks
-  interruptTimerInMilliS = 200;
+  interruptTimerInMilliS = 500;
     // 80 M / 16  = F
 }
 
