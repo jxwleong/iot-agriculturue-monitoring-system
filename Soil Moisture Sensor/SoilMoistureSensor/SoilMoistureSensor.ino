@@ -10,6 +10,8 @@
  *****************************************************************/
 
 // Global variable
+
+int sensorSwitch = D0;
 int sensorPin = A0;
 int outputVal;
 
@@ -18,6 +20,8 @@ void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   Serial.println("Reading from the soil moisture sensor...");
+  pinMode(sensorSwitch, OUTPUT);
+  digitalWrite(sensorSwitch, HIGH);
   delay(2000);
 
 }
