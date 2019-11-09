@@ -7,7 +7,7 @@
 
 DHT dht(DHTPIN, DHTTYPE);
 
-typedef struct DhtData{
+typedef struct {
   float humidity;
   float temperature;
   }DhtData;
