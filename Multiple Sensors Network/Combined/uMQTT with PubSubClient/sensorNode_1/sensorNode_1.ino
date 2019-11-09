@@ -7,6 +7,7 @@
  *  ArduinoJson : Version 5.13.5
  *  ThingsBoard : Version 0.2.0
  *  PubSubClient : Version 2.7.0
+ *  DHT sensor library  : Version 1.3.8
  ****************************************************************/
 #include <ArduinoJson.h>
 #include <ThingsBoard.h>
@@ -14,12 +15,15 @@
 #include <ESP8266WiFi.h>
 #include <stdlib.h>
 #include <Ticker.h>
+#include <DHT.h>
+#include <DHT_U.h>
+
 
 // Definition for WiFi
 #define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
-#define TOKEN  "ADDRESS_TOKEN"              	       // Device's Token address created on ThingsBoard
+#define TOKEN  "TOKEN"              	       // Device's Token address created on ThingsBoard
 #define PARAMETER_SOIL_MOSITURE  "SoilMoisture"       // Parameter of device's widget on ThingsBoard
 #define PARAMETER_TEMPERATURE  "Temperature"  
 
@@ -48,44 +52,29 @@ const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";
 #define MAX_MQTT_MESSAGE_LENGTH     128   // Size of message to be sent to server node
 
 
-#define soilMoistureSwitch    D0
-#define soilMoisturePin       A0
-/*
- * @desc: bypass the json string and get command type in rpc remote shell
- * @param: message from rpc remote shell, bypass message length
- * @retval: pointer to the bypassed input message
- */
-char *getRpcCommandInStr(char *str, int bypassLength){
-  while(bypassLength != 0){
-    str++;
-    bypassLength--;
-  }
-  return str;
-}
 
-/* 
- *  @desc: Control sampling rate based on server reply
- *  @param: server replay for rpc
- */
-void rpcHandler(){
-  char *temp;
-  Serial.println("\nrpc-Command from server");
+// Definition for sensors
+#define SOIL_MOSITURE_3V3_PIN   D0  // 3V3 pin for soil moisture sensor
+#define SOIL_MOISTURE_PIN       A0  // Input pin for Soil Moisture Sensor 
 
-  // If user didn't type anything on rpc remote shell on ThingsBoard, the default message is
-  // "No rpc command from ThingsBoard", else the message will be something else such as
-  // Received data{"method":"sendCommand","params":{"command":"characters type in remote shell"}}
-  if(strstr(replyFromServer.c_str(), "No rpc command from ThingsBoard") == NULL){
-    // strcpy(rpcCommand,temp);
-    Serial.println(replyFromServer);
-    // Example of server reply
-    // Received data{"method":"sendCommand","params":{"command":"characters type in remote shell"}}
-    // Thus to get the first characters typed, the string need to bypass 58 characters to reach "
-    temp = getRpcCommandInStr((char *)(replyFromServer.c_str()), 58); 
-    Serial.println(temp);
-  }
-  else
-    Serial.println("Nothing is typed at rpc remote shell of ThingsBoard");
-  } 
+#define DHT11_3V3_PIN      D1 // 3V3 pin for dht11 sensor
+#define DHTPIN             D2 // Input Data pin for sensor
+#define DHTTYPE    DHT11      // DHT 11
+DHT dht(DHTPIN, DHTTYPE);
+
+typedef struct {
+  float humidity;
+  float temperature;
+  }DhtData;
+
+typedef struct {
+  DhtData dht11Data;
+  int soilMoistureData;
+  }SensorData;
+  
+#define MAX_JSON_STRING_LENGTH  200
+
+/******************Sensor functions***************/  
 /*
  * @desc: Read soil moisture sensor reading and return
  *        it in percentage
@@ -94,23 +83,90 @@ void rpcHandler(){
  */
 int getSoilMoisturePercentage(int resolution, int sensorPin)
 {
-  int adcVal = 0;
-  Serial.println("Collecting soil moisture data...");
+  int soilMoisture = 0;
+
   // Read the Soil Mositure Sensor readings
-  adcVal = analogRead(sensorPin);       // Read the analog data of soil sensor
-  adcVal = map(adcVal,resolution,0,0,100);    // Map the analog data to digital form (ADC of NodeMCU is 10-bit)
-  return adcVal;
+  soilMoisture = analogRead(sensorPin);
+  soilMoisture = map(soilMoisture,resolution,0,0,100);
+
+  return soilMoisture;
 }
 
+/*
+ * @desc: Read DHT11's humidity and temperature readings
+ * @retval: Humidity and Temperature
+ */
+DhtData getDhtSensorReadings(){
+  DhtData dhtData;
 
+  // Read sensor readings
+  dhtData.humidity = dht.readHumidity();
+  dhtData.temperature = dht.readTemperature();
 
-void sendSensorReadingsToServerNode(int soilMoisture,  int temperature){
-  char messsage[MAX_MQTT_MESSAGE_LENGTH];
-  sprintf(messsage, "Soil Mositure 2: %i, Temperature 2: %i", \
-  soilMoisture, temperature);
+  // Check whether the reading is valid or not
+  if (isnan(dhtData.humidity) || isnan(dhtData.temperature)) {
+    Serial.println(F("Failed to read from DHT sensor!"));
+    //return; had to return DhtData type
+  }
+  return dhtData; // return the result
+}
+
+/*
+ * @desc: Call functions to get all sensors reading
+ * @retval: Soil Moisture, Humidity and Temperature
+ */
+SensorData getSensorData(){
+  SensorData sensorData;
+  
+  // Get all sensor data
+  sensorData.dht11Data = getDhtSensorReadings();
+  sensorData.soilMoistureData = getSoilMoisturePercentage(ADC_10_BIT_RESOLUTION, SOIL_MOISTURE_PIN);
+
+  // Display the data
+  Serial.println("");
+  Serial.print("Soil Moisture: ");
+  Serial.print(sensorData.soilMoistureData);
+  Serial.print(" %\t");
+  
+  Serial.print("Temperature: ");
+  Serial.print(sensorData.dht11Data.temperature);
+  Serial.print(" C\t");
+
+  return sensorData;
+  }
+
+/*
+ * @desc: Create Json Object to store data and convert it into string
+ * @param: Soil Moisture and Temperature
+ * @retval: String that contain necessary info for server node
+ */
+char *createJsonStringForSensorReadings(int soilMoisture, float temperature){
+
+  StaticJsonBuffer<MAX_JSON_STRING_LENGTH> jsonBuffer;
+  JsonObject& object = jsonBuffer.createObject();
+  object["From"] = "Sensor Node 1";
+  object["To"] = "Server Node";
+  object["Method"] = "sendSensorReadings";
+  object["Soil Moisture"] = soilMoisture;
+  object["Temperature"] = temperature;
+
+  Serial.println("\nJSON string in function:");
+  object.prettyPrintTo(Serial);
+  char jsonChar[MAX_JSON_STRING_LENGTH];
+  object.printTo((char*)jsonChar, object.measureLength() + 1);
+  return (char *)jsonChar;
+  }
+
+/*
+ * @desc: Send data to server in json format
+ * @param: Soil Moisture and Temperature
+ */
+void sendSensorReadingsToServerNode(int soilMoisture,  float temperature){
+
+  char *message = createJsonStringForSensorReadings(soilMoisture, temperature);
   Serial.println("Publishing message:");
-  Serial.println(messsage);
-  client.publish("toServer", messsage);
+  Serial.println(message);
+  client.publish("toServer", message);
       // ... and resubscribe
   client.subscribe("fromServer");
   }
@@ -177,9 +233,12 @@ void setup() {
   Serial.begin(115200);
   //delay(10);
   InitWiFi();
-  pinMode(soilMoistureSwitch, OUTPUT);
+  pinMode(DHT11_3V3_PIN, OUTPUT);
+  pinMode(SOIL_MOSITURE_3V3_PIN, OUTPUT);
+
+  digitalWrite(DHT11_3V3_PIN, 1);    // Turn on the sensor
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
   
-  digitalWrite(soilMoistureSwitch, HIGH);
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 }
@@ -193,7 +252,7 @@ void loop() {
   client.loop();
 
  delay(5000);
-  sendSensorReadingsToServerNode(getSoilMoisturePercentage(ADC_10_BIT_RESOLUTION ,soilMoisturePin),50);
+  sendSensorReadingsToServerNode(12, 30.5);
 }
 
 

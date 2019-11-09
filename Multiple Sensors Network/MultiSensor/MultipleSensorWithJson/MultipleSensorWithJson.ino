@@ -1,7 +1,7 @@
 /****************************************************************
  * Author  : Jason Leong Xie Wei
  * Contact : jason9829@live.com
- * Title : Two sensors node (Soil Moisture and Humidity)
+ * Title : Two sensors node (Soil Moisture and Humidity) with JSON
  * Hardware : NodeMCU ESP8266
  * Library Version:
  *  ArduinoJson : Version 5.13.5
@@ -11,6 +11,9 @@
  ****************************************************************/
 #include <DHT.h>
 #include <DHT_U.h>
+#include <ArduinoJson.h>
+
+#define MAX_JSON_STRING_LENGTH  200
 
 #define SOIL_MOSITURE_3V3_PIN   D0  // 3V3 pin for soil moisture sensor
 #define SOIL_MOISTURE_PIN       A0  // Input pin for Soil Moisture Sensor 
@@ -34,7 +37,7 @@ typedef struct {
 /*
  * @desc: Read DHT11's humidity and temperature readings
  * @retval: Humidity and Temperature
- */  
+ */    
 DhtData getDhtSensorReadings(){
   DhtData dhtData;
 
@@ -47,18 +50,7 @@ DhtData getDhtSensorReadings(){
     Serial.println(F("Failed to read from DHT sensor!"));
     //return; had to return DhtData type
   }
-
-  // Display the sensor value
-  /*
-  Serial.println("");
-  Serial.print(F("Humidity: "));
-  Serial.print(dhtData.humidity);
-  Serial.print(F("%  Temperature: "));
-  Serial.print(dhtData.temperature);
-  Serial.print(F("°C "));
-*/
   return dhtData; // return the result
-  
 }
 
 /*
@@ -95,6 +87,8 @@ SensorData getSensorData(){
   Serial.print("Temperature: ");
   Serial.print(sensorData.dht11Data.temperature);
   Serial.print(" C\t");
+
+  return sensorData;
   }
 
 void setup() {
@@ -102,20 +96,75 @@ void setup() {
   Serial.begin(115200);
   pinMode(DHT11_3V3_PIN, OUTPUT);
   pinMode(SOIL_MOSITURE_3V3_PIN, OUTPUT);
- // pinMode(DHTPIN, INPUT);
   dht.begin();
 }
 
+/*
+ * @desc: Create Json Object to store data and convert it into string
+ * @param: Soil Moisture and Temperature
+ * @retval: String that contain necessary info for server node
+ */
+char *createJsonStringForSensorReadings(int soilMoisture, float temperature){
+
+  StaticJsonBuffer<MAX_JSON_STRING_LENGTH> jsonBuffer;
+  JsonObject& object = jsonBuffer.createObject();
+  object["From"] = "Sensor Node 1";
+  object["To"] = "Server Node";
+  object["Method"] = "sendSensorReadings";
+  object["Soil Moisture"] = soilMoisture;
+  object["Temperature"] = temperature;
+
+  Serial.println("\nJSON string in function:");
+  object.prettyPrintTo(Serial);
+  char jsonChar[MAX_JSON_STRING_LENGTH];
+  object.printTo((char*)jsonChar, object.measureLength() + 1);
+  return (char *)jsonChar;
+  }
+
+/*
+ * @desc: Parse JSON format string and extract necessary info
+ * @param: String in JSON format
+ */ 
+void extractDataFromJsonString(char *jsonStr){
+  // need to use char array to parse else the duplication will occur and jsonBuffer will be full.
+  // Ref:https://github.com/bblanchon/ArduinoJson/blob/5.x/examples/JsonParserExample/JsonParserExample.ino#L28
+  char jsonBuff[MAX_JSON_STRING_LENGTH];
+  strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
+  
+  DynamicJsonBuffer jsonBuffer;
+  Serial.println("jsonString in func:");
+  Serial.print(jsonBuff);
+  JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
+
+  // Decode data from jsonString
+  Serial.println("Data from json string: ");
+  const char* from = root["From"]; 
+  Serial.println(from); 
+  const char* to = root["To"]; 
+  Serial.println(to);
+  const char* Method = root["Method"]; 
+  Serial.println(Method);
+  int soilMoisture = root["Soil Moisture"];
+  Serial.println(soilMoisture); 
+  float temperature = root["Temperature"];
+  Serial.println(temperature);
+  }
+    
 void loop() {
   // put your main code here, to run repeatedly:
+  SensorData sensorData;
+  char *str;
+  char str1[MAX_JSON_STRING_LENGTH];
   digitalWrite(DHT11_3V3_PIN, 1);    // Turn on the sensor
   digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
   delay(2000);
-  getSensorData();
+  sensorData = getSensorData();
+  str = createJsonStringForSensorReadings(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
+  extractDataFromJsonString(str);
+   // delay(1000);
   digitalWrite(DHT11_3V3_PIN, 0);    // Turn off the sensor
   digitalWrite(SOIL_MOSITURE_3V3_PIN, 0); 
   delay(1000);
 
-  
   
 }

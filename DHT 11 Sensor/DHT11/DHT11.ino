@@ -1,4 +1,4 @@
-#include "DHT.h"
+#include <DHT.h>
 #include <DHT_U.h>
 
 #define DHT11_3V3_PIN      D1 // 3V3 pin for sensor

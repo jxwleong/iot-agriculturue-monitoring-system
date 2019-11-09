@@ -29,7 +29,7 @@
 
 #define NUMBER_OF_CLIENTS    2 // Maximum number of sensor nodes to connect to server
 //const char * host = "IP_ADDRESS_CLIENT";    // IP Client
-String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
+String TOKEN = "TOKEN";      // Device's Token address created on ThingsBoard
 String PARAMETER = "PARAMETER";           // Parameter of device's widget on ThingsBoard
 
 char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
