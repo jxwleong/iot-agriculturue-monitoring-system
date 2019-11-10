@@ -144,7 +144,7 @@ char *createJsonStringForSensorReadings(int soilMoisture, float temperature){
 
   StaticJsonBuffer<MAX_JSON_STRING_LENGTH> jsonBuffer;
   JsonObject& object = jsonBuffer.createObject();
-  object["From"] = "Sensor Node 1";
+  object["From"] = "Sensor Node 2";
   object["To"] = "Server Node";
   object["Method"] = "sendSensorReadings";
   object["Soil Moisture"] = soilMoisture;
@@ -195,7 +195,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "Sensor1-";
+    String clientId = "Sensor2-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
@@ -255,7 +255,6 @@ void loop() {
  delay(5000);
  sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
 }
-
 
 // References 
 // [1.] Arduino | Communication Two LoLin NodeMCU V3 ESP8266 (Client Server) for Controlling LED

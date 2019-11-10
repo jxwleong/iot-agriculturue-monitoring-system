@@ -18,8 +18,8 @@
 #include <uMQTTBroker.h>
 
 // Definition for WiFi
-#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
+#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
+#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
 
 
 #define MAX_CLIENTS   10          // Maximum no of clients to be connected to server
@@ -29,10 +29,10 @@
 
 #define NUMBER_OF_CLIENTS    2 // Maximum number of sensor nodes to connect to server
 //const char * host = "IP_ADDRESS_CLIENT";    // IP Client
-String TOKEN = "TOKEN";      // Device's Token address created on ThingsBoard
+String TOKEN = "rB8vcDdciynDrDTfK5wY";      // Device's Token address created on ThingsBoard
 String PARAMETER = "PARAMETER";           // Parameter of device's widget on ThingsBoard
 
-char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
+char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
 
 // Global variable
 int status = WL_IDLE_STATUS;
@@ -46,34 +46,7 @@ ThingsBoard tb(wifiClient);
 
 WiFiClient clients[MAX_CLIENTS];
 
-
-/*
- * Custom broker class with overwritten callback functions
- */
-class myMQTTBroker: public uMQTTBroker
-{
-public:
-    virtual bool onConnect(IPAddress addr, uint16_t client_count) {
-      Serial.println(addr.toString()+" connected");
-      return true;
-    }
-    
-    virtual bool onAuth(String username, String password) {
-      Serial.println("Username/Password: "+username+"/"+password);
-      return true;
-    }
-    
-    virtual void onData(String topic, const char *data, uint32_t length) {
-      char data_str[length+1];
-      os_memcpy(data_str, data, length);
-      data_str[length] = '\0';
-      
-      Serial.println("received topic '"+topic+"' with data '"+(String)data_str+"'");
-    }
-};
-
-myMQTTBroker myBroker;
-
+#define MAX_JSON_STRING_LENGTH  200
 
 char Commands_Reply[] = "Received data";                // The command message that is sent to the client
 char rpc_Reply[] = "No rpc command from ThingsBoard";   // Message to sent to the client with Commands_Reply
@@ -151,95 +124,96 @@ struct SensorInfo{
                           // message.
 };
 
+#define DEFAULT_SOIL_MOSITURE_SENSOR_PARAMETER   "soilMoisture"
+#define DEFAULT_DHT11_SENSOR_PARAMETER            "temperature"
+// Sensor parameter used to publish telemetry to ThingsBoard
+typedef struct SensorParameter SensorParameter;
+struct SensorParameter{
+   String soilMoistureParam = DEFAULT_SOIL_MOSITURE_SENSOR_PARAMETER; // Soil Moisture Sensor Parameter
+   String dht11Param = DEFAULT_DHT11_SENSOR_PARAMETER;                // DHT11 Sensor Parameter
+  };
+
+SensorParameter getSensorParameterFromClient(char *from){
+  SensorParameter sensorParameter;
+  if(!strstr("Sensor Node 1", from)){ // Compare sensor node
+    //strcat(sensorParameter.soilMoistureParam,"1");
+    //strcat(sensorParameter.dht11Param,"1");
+    (sensorParameter.soilMoistureParam).concat(1)
+    (sensorParameter.dht11Param).concat(1);
+  
+  }
+  else if(!strstr("Sensor Node 2", from)){ // Compare sensor node
+    //strcat(sensorParameter.soilMoistureParam,"2");
+    //strcat(sensorParameter.dht11Param,"2");
+     (sensorParameter.soilMoistureParam).concat(1)
+    (sensorParameter.dht11Param).concat(1);
+  }
+  else
+    Serial.println("Invalid Sensor Node!");
+  return sensorParameter;
+    
+}
 /*
- * @desc: bypass the characters of str based on length
- * @param: str to be bypass, the length of bypass
+ * @desc: Parse JSON format string and extract necessary info
+ * @param: String in JSON format
+ */ 
+void extractAndProcessDataFromClient(char *jsonStr){
+  // need to use char array to parse else the duplication will occur and jsonBuffer will be full.
+  // Ref:https://github.com/bblanchon/ArduinoJson/blob/5.x/examples/JsonParserExample/JsonParserExample.ino#L28
+  char jsonBuff[MAX_JSON_STRING_LENGTH];
+  strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
+  
+  DynamicJsonBuffer jsonBuffer;
+  Serial.println("jsonString in func:");
+  Serial.print(jsonBuff);
+  JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
+
+  // Decode data from jsonString
+  Serial.println("Data from json string: ");
+  const char* from = root["From"]; 
+  Serial.println(from); 
+  const char* to = root["To"]; 
+  Serial.println(to);
+  const char* Method = root["Method"]; 
+  Serial.println(Method);
+  int soilMoisture = root["Soil Moisture"];
+  Serial.println(soilMoisture); 
+  float temperature = root["Temperature"];
+  Serial.println(temperature);
+
+  SensorParameter sensorParameter = getSensorParameterFromClient((char*)from);
+  uploadReadingsToThingsBoard(soilMoisture,sensorParameter.soilMoistureParam);
+  uploadReadingsToThingsBoard(temperature, sensorParameter.dht11Param);
+  }
+  
+/*
+ * Custom broker class with overwritten callback functions
  */
-void bypassCharactersInStr(char **str, int length){
-    while(length != 0){
-        ++*str;
-        length--;
+class myMQTTBroker: public uMQTTBroker
+{
+public:
+    virtual bool onConnect(IPAddress addr, uint16_t client_count) {
+      Serial.println(addr.toString()+" connected");
+      return true;
     }
-}
-/*
- * @desc: Skip any whitespaces of str
- * @param: Str with whitespaces to bypass
- */
-void skipWhiteSpaces(char **str){
-    while(**str == ' ')
-        ++*str;
-}
-
-/*
- * @desc: Get the sensor node number from MQTT client message
- * @param: Message from client, parameter (keyboard) to search
- * @retval: Sensor node number
- */
-int getSensorNodeNumber(char *message, char *parameter){
-    int sensorNodeNumber;
-    int parameterLength = strlen(parameter);
     
-    // move to the last character of matched string        
-    bypassCharactersInStr(&message, parameterLength); // -1 minus the '/0'
-    skipWhiteSpaces(&message);
-    // -0 to get int based on ASCII table
-    sensorNodeNumber = *message - '0';
-    return sensorNodeNumber;
-}
-
-/*
- * @desc: Get the sensor reading from MQTT client message
- * @param: Message from client, parameter (keyboard) to search[modified]
- * @retval: Sensor reading
- */
-int getSensorReading(char *message, char *parameter){
-    int i = 0;
-    int sensorReading;
-    int parameterLength = strlen(parameter);
-    char temp[8];    // to store sensor reading in char first
-    // move to the last character of matched string        
-    bypassCharactersInStr(&message, parameterLength); // -1 minus the '/0'
-    skipWhiteSpaces(&message);
-    while(*message != ','){
-        if(isdigit(*message)){
-            temp[i] = *message;
-            i++;
-            message++;
-        }
+    virtual bool onAuth(String username, String password) {
+      Serial.println("Username/Password: "+username+"/"+password);
+      return true;
     }
-        temp[i] = '\0'; // end of string
-        sensorReading = strtol(temp, NULL, 10);
     
-}
-
-
-/*
- * @desc: Get the sensor node number and reading from MQTT client message
- * @param: Message from client, parameter (keyboard) to search
- * @retval: Senor node number, sensor reading
- */
-SensorInfo getSensorInfoInStr(char *message, char *parameter){
-    SensorInfo sensorInfo;
-    int i = 0;
-    int parameterLength = strlen(parameter);
-    char temp[20];   // change the parameter with sensor 
-                                                // node number to find sensor reading
-    char *exist = strstr(message, parameter); 
-    
-    // If the paramter is found
-    if(exist != NULL){
-    
-        // get the sensor node number    
-        sensorInfo.sensorNodeNumber = getSensorNodeNumber(exist, parameter); 
-        //Example "Soil Mositure 1:"
-        //-------------^         ^-----
-        //         (parameter)    (sensorNodeNumber)
-        sprintf(temp, "%s %i:", parameter,sensorInfo.sensorNodeNumber); // new parameter to get 
-                                                                        // sensor reading
-        sensorInfo.sensorReading = getSensorReading(exist, temp);                                         
+    virtual void onData(String topic, const char *data, uint32_t length) {
+      char data_str[length+1];
+      os_memcpy(data_str, data, length);
+      data_str[length] = '\0';
+      
+      Serial.println("received topic '"+topic+"' with data '"+(String)data_str+"'");
+      extractAndProcessDataFromClient(data_str);
     }
-    return sensorInfo;
-}
+};
+
+myMQTTBroker myBroker;
+
 
 /*  
  * @desc: Change the TOKEN to different devices TOKEN,
@@ -269,21 +243,20 @@ void changeDeviceParam(String &des, String src){
    Serial.println(PARAMETER);  
 }
 
-/*  
- * @desc: Change the parameter and token to different devices parameter,
- *        to communicate with ThingsBoard
- * @param: token(string),deviceParam(string), DeviceLists(enum)
+/*
+ * @desc: Upload sensor reading to ThingsBoard and display on widget
+ * @param: sensor reading, parameter created on ThingsBoard
  */
-void setThingsBoardDevice(String &token, String &param, DeviceLists device){
-  Serial.print("\n");
-  Serial.print("Changing device from ");
-  Serial.print(PARAMETER);
-  token = deviceToken[device];
-  param = deviceParam[device];
-  Serial.print(" to ");
-  Serial.print(PARAMETER);
-  }
+void uploadReadingsToThingsBoard(float sensorData, char *deviceParameter){
+  Serial.println("Sending ");
+  Serial.print(deviceParameter);
+  Serial.print(sensorData);
+  Serial.print(" %\t");
+  Serial.print("to ThingsBoard");
 
+  tb.sendTelemetryFloat(deviceParameter, sensorData);   // Upload data to ThingsBoard
+  }  
+  
 /*
  * @desc: Change server reply message to client
  * @param: commandStr, rpcStr
