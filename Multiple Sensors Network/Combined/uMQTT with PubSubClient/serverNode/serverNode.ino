@@ -124,33 +124,68 @@ struct SensorInfo{
                           // message.
 };
 
-#define DEFAULT_SOIL_MOSITURE_SENSOR_PARAMETER   "soilMoisture"
-#define DEFAULT_DHT11_SENSOR_PARAMETER            "temperature"
 // Sensor parameter used to publish telemetry to ThingsBoard
 typedef struct SensorParameter SensorParameter;
 struct SensorParameter{
-   String soilMoistureParam = DEFAULT_SOIL_MOSITURE_SENSOR_PARAMETER; // Soil Moisture Sensor Parameter
-   String dht11Param = DEFAULT_DHT11_SENSOR_PARAMETER;                // DHT11 Sensor Parameter
+   String soilMoistureParam = "soilMoisture";       // Soil Moisture Sensor Parameter
+   String dht11Param = "temperature";               // DHT11 Sensor Parameter
   };
-
-SensorParameter getSensorParameterFromClient(char *from){
-  SensorParameter sensorParameter;
-  if(!strstr("Sensor Node 1", from)){ // Compare sensor node
-    //strcat(sensorParameter.soilMoistureParam,"1");
-    //strcat(sensorParameter.dht11Param,"1");
-    (sensorParameter.soilMoistureParam).concat(1)
-    (sensorParameter.dht11Param).concat(1);
   
-  }
-  else if(!strstr("Sensor Node 2", from)){ // Compare sensor node
-    //strcat(sensorParameter.soilMoistureParam,"2");
-    //strcat(sensorParameter.dht11Param,"2");
-     (sensorParameter.soilMoistureParam).concat(1)
-    (sensorParameter.dht11Param).concat(1);
-  }
-  else
-    Serial.println("Invalid Sensor Node!");
-  return sensorParameter;
+/*
+ * @desc: bypass the characters of str based on length
+ * @param: str to be bypass, the length of bypass
+ */
+void bypassCharactersInStr(char **str, int length){
+    while(length != 0){
+        ++*str;
+        length--;
+    }
+}
+
+/*
+ * @desc: Skip any whitespaces of str
+ * @param: Str with whitespaces to bypass
+ */
+void skipWhiteSpaces(char **str){
+    while(**str == ' ')
+        ++*str;
+}
+/*
+ * @desc: Get the sensor node number from MQTT client message
+ * @param: Message from client, parameter (keyboard) to search
+ * @retval: Sensor node number
+ */
+int getSensorNodeNumber(char *message, char *parameter){
+    int sensorNodeNumber;
+    int parameterLength = strlen(parameter);
+    
+    // move to the last character of matched string        
+    bypassCharactersInStr(&message, parameterLength); // -1 minus the '/0'
+    skipWhiteSpaces(&message);
+    // -0 to get int based on ASCII table
+    sensorNodeNumber = *message - '0';
+    return sensorNodeNumber;
+}
+
+
+
+// Sensor Node 1
+SensorParameter getSensorParameterFromClient(const char *from){
+  //int sensorNodeNumber = getSensorNodeNumber(strdup(from), "Sensor Node");
+  //char sensorNumber = from[5];
+  SensorParameter sensorParameter;
+  Serial.println(from);
+  String myString = String(from);
+  char sensorNumber = myString.charAt(12);
+  Serial.println(sensorNumber);
+  Serial.println("myString Length:");
+//  Serial.println(stringLength);
+  sensorParameter.soilMoistureParam = sensorParameter.soilMoistureParam + sensorNumber;
+  sensorParameter.dht11Param = sensorParameter.dht11Param + sensorNumber;
+  Serial.println(sensorParameter.soilMoistureParam);
+  Serial.println(sensorParameter.dht11Param);
+  
+ return sensorParameter;
     
 }
 /*
@@ -180,10 +215,9 @@ void extractAndProcessDataFromClient(char *jsonStr){
   Serial.println(soilMoisture); 
   float temperature = root["Temperature"];
   Serial.println(temperature);
-
-  SensorParameter sensorParameter = getSensorParameterFromClient((char*)from);
-  uploadReadingsToThingsBoard(soilMoisture,sensorParameter.soilMoistureParam);
-  uploadReadingsToThingsBoard(temperature, sensorParameter.dht11Param);
+  SensorParameter sensorParameter = getSensorParameterFromClient(from);
+  uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
+  uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
   }
   
 /*
@@ -215,34 +249,6 @@ public:
 myMQTTBroker myBroker;
 
 
-/*  
- * @desc: Change the TOKEN to different devices TOKEN,
- *        The TOKEN will used to communicate the device
- *        created on ThingsBoard
- * @param: token(string), deviceToken(string)
- */
-void changeTokenAddress(String &des, String src){ // '&' so param val will changed
-   Serial.println("Before Token :");
-   Serial.println(TOKEN);
-   des = src;
-   Serial.println("After Token :");
-   Serial.println(TOKEN);
-} 
-
-/*  
- * @desc: Change the parameter to different devices parameter,
- *        The parameter will used to upload readings 
- *        to ThingsBoard
- * @param: parameter(string), deviceParam(string),
- */
-void changeDeviceParam(String &des, String src){
-   Serial.println("Before parameter :");
-   Serial.println(PARAMETER);
-   des = src;
-   Serial.println("After parameter :");
-   Serial.println(PARAMETER);  
-}
-
 /*
  * @desc: Upload sensor reading to ThingsBoard and display on widget
  * @param: sensor reading, parameter created on ThingsBoard
@@ -257,74 +263,7 @@ void uploadReadingsToThingsBoard(float sensorData, char *deviceParameter){
   tb.sendTelemetryFloat(deviceParameter, sensorData);   // Upload data to ThingsBoard
   }  
   
-/*
- * @desc: Change server reply message to client
- * @param: commandStr, rpcStr
- */
-void changeServerReplyMessageRpc(char *rpcReply){
-  Serial.println("\nChanging replay");
-  Serial.println("From ");
-  Serial.print(rpc_Reply);
-  strcpy(rpc_Reply,rpcReply);
-  Serial.print(" to ");
-  Serial.print(rpcReply);
-  Serial.print("\n");
-}
 
-/*
- * @desc: Receive data from connected clients and reply 
- *        with message
- */
-void getDataFromClientsAndReply(){
-  // Check if a client has connected
-  clients[i] = server.available();
-  if (!clients[i]) {
-    return;
-  }
-
-  // Wait until the client sends some data
-  Serial.println("Server-------------------------------");
-  Serial.println("New client");
-  Serial.print("From client = ");
-  Serial.print(clients[i].remoteIP());      // Display client IP address
-  while(!clients[i].available()){           // Wait until client available
-    delay(1);
-  }
-
-  // Read the first line of the request -------------------------------------
-   String req = clients[i].readStringUntil('\n');   // Read the message request(data) from client node
-   Serial.print("\nData from client: ");            // Print message from client node
-   Serial.print(req);
-   Serial.print("%\n");
-   int soilMoisture = req.toInt();          // Convert the data from string to integer 
-    
-
-   //Command -------------------------------------------------------------
-    Serial.print("Server send = ");
-    sprintf(Commands_Reply, "Received data");  // Reply to client after receive data.
-    //Serial.println(Commands_Reply);
-    Serial.println(rpc_Reply);
-    //clients[i].print(Commands_Reply);       // Send reply messages to client
-    clients[i].print(rpc_Reply);
-    changeServerReplyMessageRpc("No rpc command from ThingsBoard");  // Change the reply messages(rpc message will change
-                                                                     // on callback function thus need to reset default message
-    
-    clients[i].flush();           // Wait until all data was sent
-    Serial.println("-------------------------------------");
-    Serial.println("");
-}
-
-/*
- * @desc: Call function to get data from clients
- * @param: Number of clients(sensor nodes)
- */
-void clientHandler(int noOfClients){
-  for(int j=0; j<noOfClients; j++){
-      getDataFromClientsAndReply(); // get the data from clients
-      i++;
-    }
-   i = 0;   // Reset the client counter
-  }
 /********************RPC functions*****************/
 
 /*******************Timer functions****************/
@@ -653,10 +592,9 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  if ( !client.connected() && sleepStatus == AWAKE) {
+  if ( !client.connected()) {
     reconnect();
   }
-  clientHandler(NUMBER_OF_CLIENTS);
 
 
   client.loop();

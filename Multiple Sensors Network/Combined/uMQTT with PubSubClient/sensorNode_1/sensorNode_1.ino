@@ -15,20 +15,14 @@
 #include <ESP8266WiFi.h>
 #include <stdlib.h>
 #include <Ticker.h>
-#include <DHT.h>
-#include <DHT_U.h>
+#include "SDHT.h"
 
 
 // Definition for WiFi
 #define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
 #define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
 
-#define TOKEN  "TOKEN"              	       // Device's Token address created on ThingsBoard
-#define PARAMETER_SOIL_MOSITURE  "SoilMoisture"       // Parameter of device's widget on ThingsBoard
-#define PARAMETER_TEMPERATURE  "Temperature"  
-
 const char * host = "IP_ADDRESS_SERVER";     // IP Server
-
 
 // Definition for ADC
 #define ADC_10_BIT_RESOLUTION   1024     // resolution of ESP8266 ADC
@@ -38,19 +32,10 @@ int status = WL_IDLE_STATUS;
 
 WiFiClient wifiClient;                   // Wifi clients created to connect to internet and 
 PubSubClient client(wifiClient);         // ThingsBoard
-ThingsBoard tb(wifiClient);
-
-const int httpPort = 80;                 // client port
-
-char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
-
-char rpcCommand[128] ;          // rpc message key-in at ThingsBoard RPC remote shell
-String replyFromServer;         // Reply message from server after received data
 
 const char* mqtt_server = "192.168.43.21";
 
 #define MAX_MQTT_MESSAGE_LENGTH     128   // Size of message to be sent to server node
-
 
 
 // Definition for sensors
@@ -60,8 +45,8 @@ const char* mqtt_server = "192.168.43.21";
 #define DHT11_3V3_PIN      D1 // 3V3 pin for dht11 sensor
 #define DHTPIN             D2 // Input Data pin for sensor
 #define DHTTYPE    DHT11      // DHT 11
-DHT dht(DHTPIN, DHTTYPE);
 
+SDHT dht;
 typedef struct {
   float humidity;
   float temperature;
@@ -72,7 +57,23 @@ typedef struct {
   int soilMoistureData;
   }SensorData;
   
+typedef enum{
+  SENSOR_OFF = LOW,
+  SENSOR_ON = HIGH,
+  }SensorMode;  
+
+Ticker sendDataToServer;
+
 #define MAX_JSON_STRING_LENGTH  200
+
+// Definition for timer
+#define CPU_FREQ_80M    80000000
+#define CPU_FREQ_160M   160000000
+#define TIM_FREQ_DIV1   1
+#define TIM_FREQ_DIV16   16
+#define TIM_FREQ_DIV256   256
+
+#define DEFAULT_DATA_SAMPLING_RATE_MS  2000
 
 /******************Sensor functions***************/  
 /*
@@ -99,14 +100,9 @@ int getSoilMoisturePercentage(int resolution, int sensorPin)
 DhtData getDhtSensorReadings(){
   DhtData dhtData;
 
-  // Read sensor readings
-  dhtData.humidity = dht.readHumidity();
-  dhtData.temperature = dht.readTemperature();
-
-  // Check whether the reading is valid or not
-  if (isnan(dhtData.humidity) || isnan(dhtData.temperature)) {
-    Serial.println(F("Failed to read from DHT sensor!"));
-    //return; had to return DhtData type
+  if (dht.read(DHT11, DHTPIN)){ // If no eror then status return 1
+      dhtData.temperature= (double(dht.celsius) / 10);
+      dhtData.humidity = (double(dht.humidity) / 10);
   }
   return dhtData; // return the result
 }
@@ -117,20 +113,9 @@ DhtData getDhtSensorReadings(){
  */
 SensorData getSensorData(){
   SensorData sensorData;
-  
   // Get all sensor data
   sensorData.dht11Data = getDhtSensorReadings();
-  sensorData.soilMoistureData = getSoilMoisturePercentage(ADC_10_BIT_RESOLUTION, SOIL_MOISTURE_PIN);
-
-  // Display the data
-  Serial.println("");
-  Serial.print("Soil Moisture: ");
-  Serial.print(sensorData.soilMoistureData);
-  Serial.print(" %\t");
-  
-  Serial.print("Temperature: ");
-  Serial.print(sensorData.dht11Data.temperature);
-  Serial.print(" C\t");
+  sensorData.soilMoistureData = getSoilMoisturePercentage(ADC_10_BIT_RESOLUTION, SOIL_MOISTURE_PIN);  
 
   return sensorData;
   }
@@ -170,7 +155,15 @@ void sendSensorReadingsToServerNode(int soilMoisture,  float temperature){
       // ... and resubscribe
   client.subscribe("fromServer");
   }
-  
+
+/*
+ * @desc: Turn on/off 3V3 supply for sensors
+ * @param: sensorMode (on/ off)
+ */
+void sensorPowerSwitch(SensorMode sensorMode){
+  digitalWrite(DHT11_3V3_PIN, sensorMode);    // Switch sensor mode
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, sensorMode);
+  }  
 /*******************WiFi functions****************/  
 /*
  * @desc: Connect device to WiFi
@@ -195,7 +188,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "Sensor1-";
+    String clientId = "Sensor2-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
@@ -227,35 +220,62 @@ void callback(char* topic, byte* payload, unsigned int length) {
   client.subscribe("fromServer");
 
 }
+/*******************Timer functions****************/
+/*
+ * @desc: Calcuate the number of ticks to write into timer
+ * @param: CPU frequency, frequency divider, timer in milliseconds
+ * @retval: number of ticks for achieve desired time
+ */
+uint32_t getTimerTicks(uint32_t freq, int freqDivider, int milliSeconds){
+  uint32_t  dividedFreq = 0;
+  float period = 0, ticks = 0;
+  dividedFreq = freq/ freqDivider;
+  period = (float)(1) / (float)(dividedFreq);
+  ticks = ((float)(milliSeconds)/(float)(1000) / period);
+  // get the value in milliSeconds then div by period
+  return ticks;
+  }
+
+void ISR_FUNC(){
+  SensorData sensorData;
+  Serial.println("Times up!");
+  sensorData = getSensorData();
+  sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
+  }
+  
+
+// Init functions
+void InitSensor(){
+  pinMode(DHT11_3V3_PIN, OUTPUT);
+  pinMode(SOIL_MOSITURE_3V3_PIN, OUTPUT);
+  digitalWrite(DHT11_3V3_PIN, 1);    // Turn on the sensor
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
+  }
+  
 // Main functions
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(115200);
   //delay(10);
   InitWiFi();
-  pinMode(DHT11_3V3_PIN, OUTPUT);
-  pinMode(SOIL_MOSITURE_3V3_PIN, OUTPUT);
-
-  digitalWrite(DHT11_3V3_PIN, 1);    // Turn on the sensor
-  digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
+  InitSensor();
   
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+
+  sendDataToServer.attach_ms(DEFAULT_DATA_SAMPLING_RATE_MS,  ISR_FUNC);
+
 }
 
 void loop() {
- SensorData sensorData; 
   // put your main code here, to run repeatedly:
  if ( !client.connected() ) {
     reconnect();
   }
 
   client.loop();
- sensorData =getSensorData();
- delay(5000);
- sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
-}
 
+}
 
 // References 
 // [1.] Arduino | Communication Two LoLin NodeMCU V3 ESP8266 (Client Server) for Controlling LED
