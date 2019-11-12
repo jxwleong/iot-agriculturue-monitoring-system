@@ -18,39 +18,24 @@
 #include <uMQTTBroker.h>
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
-#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
 
-#define MAX_CLIENTS   10          // Maximum no of clients to be connected to server
-#define MAX_DEVICES   10
+String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
 
-#define MAX_TOKEN_LENGTH    32
-
-#define NUMBER_OF_CLIENTS    2 // Maximum number of sensor nodes to connect to server
-//const char * host = "IP_ADDRESS_CLIENT";    // IP Client
-String TOKEN = "rB8vcDdciynDrDTfK5wY";      // Device's Token address created on ThingsBoard
-String PARAMETER = "PARAMETER";           // Parameter of device's widget on ThingsBoard
-
-char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
 
 // Global variable
 int status = WL_IDLE_STATUS;
-unsigned long lastSend;
-
-WiFiServer server(80);              // Server with port(declared at clients node)
 
 WiFiClient wifiClient;              // Wifi clients created to connect to internet and 
 PubSubClient client(wifiClient);    // ThingsBoard
 ThingsBoard tb(wifiClient);
 
-WiFiClient clients[MAX_CLIENTS];
 
 #define MAX_JSON_STRING_LENGTH  200
 
-char Commands_Reply[] = "Received data";                // The command message that is sent to the client
-char rpc_Reply[] = "No rpc command from ThingsBoard";   // Message to sent to the client with Commands_Reply
-// char* : cause unexpected behaviour
 int i = 0;
   
 // Definition for timer
@@ -92,29 +77,6 @@ typedef enum{
   }ControlOperation;
   
 char *command;  // Command from rpc remote shell
-
-// Device List Name for String Array
-typedef enum{
-  Sensor1,
-  Sensor2,
-  ServerNode,
-  }DeviceLists;
-
-// String array represent TOKEN ADDRESS of
-// respective devices on ThingsBoard
-String deviceToken[MAX_DEVICES] = {
-  [Sensor1] = "9XsTWu7cnzt2Ntso9X67",
-  [Sensor2] = "uUca2JippVzlqxuQ3V8B",
-  [ServerNode] = "rB8vcDdciynDrDTfK5wY",
-  }; 
-
-// String array represent parameter of widget
-// on ThingsBoard (use for sending/ receiving data)  
-String deviceParam[MAX_DEVICES] = {
-  [Sensor1] = "Soil Sensor 1",
-  [Sensor2] = "Soil Sensor 2",
-  [ServerNode] = "Server Node",
-  }; 
 
 // MQTT definition and function
 typedef struct SensorInfo SensorInfo;
@@ -167,25 +129,16 @@ int getSensorNodeNumber(char *message, char *parameter){
     return sensorNodeNumber;
 }
 
-
-
-// Sensor Node 1
 SensorParameter getSensorParameterFromClient(const char *from){
-  //int sensorNodeNumber = getSensorNodeNumber(strdup(from), "Sensor Node");
-  //char sensorNumber = from[5];
   SensorParameter sensorParameter;
-  Serial.println(from);
   String myString = String(from);
-  char sensorNumber = myString.charAt(12);
-  Serial.println(sensorNumber);
-  Serial.println("myString Length:");
-//  Serial.println(stringLength);
+  char sensorNumber = myString.charAt(12);  // Get the sensor node number 0-9 MAX since
+                                            // uMQTT broker allow 8 clients
+  // Concatenate paramter with sensor node number
   sensorParameter.soilMoistureParam = sensorParameter.soilMoistureParam + sensorNumber;
   sensorParameter.dht11Param = sensorParameter.dht11Param + sensorNumber;
-  Serial.println(sensorParameter.soilMoistureParam);
-  Serial.println(sensorParameter.dht11Param);
   
- return sensorParameter;
+  return sensorParameter;
     
 }
 /*
@@ -199,23 +152,39 @@ void extractAndProcessDataFromClient(char *jsonStr){
   strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
   
   DynamicJsonBuffer jsonBuffer;
-  Serial.println("jsonString in func:");
-  Serial.print(jsonBuff);
   JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
 
   // Decode data from jsonString
-  Serial.println("Data from json string: ");
-  const char* from = root["From"]; 
-  Serial.println(from); 
-  const char* to = root["To"]; 
-  Serial.println(to);
-  const char* Method = root["Method"]; 
-  Serial.println(Method);
-  int soilMoisture = root["Soil Moisture"];
-  Serial.println(soilMoisture); 
-  float temperature = root["Temperature"];
-  Serial.println(temperature);
+  Serial.println("\nDecoded JSON received from clients:");
+  const char* from = root["from"]; 
+  Serial.print("From: ");
+  Serial.print(from); 
+  Serial.println("");
+  
+  const char* to = root["to"]; 
+  Serial.print("To: ");
+  Serial.print(to); 
+  Serial.println("");
+  
+  const char* Method = root["method"]; 
+  Serial.print("Method: ");
+  Serial.print(Method); 
+  Serial.println("");
+  
+  int soilMoisture = root["soilMoisture"];
+  Serial.print("Soil Moisture: ");
+  Serial.print(soilMoisture);  
+  Serial.print(" %");
+  Serial.println("");
+  
+  float temperature = root["temperature"];
+  Serial.print("Temperature: ");
+  Serial.print(temperature); 
+  Serial.print(" C");
+  Serial.println("");
+  
   SensorParameter sensorParameter = getSensorParameterFromClient(from);
+  Serial.println("Uploading sensor data to ThingsBoard...");
   uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
   uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
   }
@@ -240,7 +209,11 @@ public:
       char data_str[length+1];
       os_memcpy(data_str, data, length);
       data_str[length] = '\0';
-      
+
+      Serial.println("\n========================================");
+      Serial.println("      Received message from clients.      ");
+      Serial.println(  "========================================");
+
       Serial.println("received topic '"+topic+"' with data '"+(String)data_str+"'");
       extractAndProcessDataFromClient(data_str);
     }
@@ -254,12 +227,6 @@ myMQTTBroker myBroker;
  * @param: sensor reading, parameter created on ThingsBoard
  */
 void uploadReadingsToThingsBoard(float sensorData, char *deviceParameter){
-  Serial.println("Sending ");
-  Serial.print(deviceParameter);
-  Serial.print(sensorData);
-  Serial.print(" %\t");
-  Serial.print("to ThingsBoard");
-
   tb.sendTelemetryFloat(deviceParameter, sensorData);   // Upload data to ThingsBoard
   }  
   
@@ -343,8 +310,7 @@ ControlOperation getCommandOperation(char *command){
     else if(strstr (command, "sleep"))
       return SLEEP;
     else 
-      return INVALID; 
-      
+      return INVALID;      
   }
 
 /*
@@ -379,10 +345,10 @@ void rpcCommandOperation(char *command){
                            client.publish("v1/devices/me/attributes", get_relay_status().c_str());
                            break;  // Turn off Relay and update status
                          
-      case SLEEP:    switchPowerMode(getPowerMode(command));
-                     sleepStatus = SLEEPING;
-                     Serial.println("I'm going to sleep...");
-                     break;           // Choose power mode
+      //case SLEEP:    switchPowerMode(getPowerMode(command));
+       //              sleepStatus = SLEEPING;
+       //              Serial.println("I'm going to sleep...");
+        //             break;           // Choose power mode
       default: Serial.println("Invalid operation chosen!");
     }
   }
@@ -409,10 +375,11 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     client.publish("v1/devices/me/attributes", get_relay_status().c_str());
   }
   else if(methodName.equals("sendCommand")){
+    myBroker.publish("fromServer", fullRpcMessage);
     Serial.println(fullRpcMessage);
-   command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
-   Serial.println(command);
-   rpcCommandOperation(command);                  // Operate based on command
+    command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
+    Serial.println(command);
+    rpcCommandOperation(command);                  // Operate based on command
   }
 }
 /*
@@ -450,7 +417,6 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
   // Check request method
   String methodName = String((const char*)data["method"]);
   Serial.println(methodName);
-  myBroker.publish("fromServer", fullRpcMessage);
   processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
 
 
@@ -527,10 +493,7 @@ void InitWiFi() {
     Serial.print(".");
   }
   Serial.println("Connected to AP");
-  
-  // Start the server
-  server.begin();
-  Serial.println("Server started");
+ 
 }
 
 
@@ -595,7 +558,6 @@ void loop() {
   if ( !client.connected()) {
     reconnect();
   }
-
 
   client.loop();
 }

@@ -19,10 +19,8 @@
 
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
-#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
-
-const char * host = "IP_ADDRESS_SERVER";     // IP Server
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
 // Definition for ADC
 #define ADC_10_BIT_RESOLUTION   1024     // resolution of ESP8266 ADC
@@ -33,10 +31,31 @@ int status = WL_IDLE_STATUS;
 WiFiClient wifiClient;                   // Wifi clients created to connect to internet and 
 PubSubClient client(wifiClient);         // ThingsBoard
 
-const char* mqtt_server = "192.168.43.21";
+const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
 
 #define MAX_MQTT_MESSAGE_LENGTH     128   // Size of message to be sent to server node
 
+// Definition for power saving functions
+typedef enum{
+  NORMAL_MODE,  // Use power for all neccessary peripehrals
+  MODEM_SLEEP,  // Turn off WiFi
+  LIGHT_SLEEP,  // Turn off System Clock
+  DEEP_SLEEP,   // Everything off except RTC
+  }PowerMode;
+  
+typedef enum{
+  AWAKE,
+  SLEEPING,
+  }SleepStatus;  
+  
+volatile SleepStatus sleepStatus = AWAKE;
+// Definition for RPC functions
+typedef enum{
+  TURN_ON_RELAY,
+  TURN_OFF_RELAY,
+  SLEEP,
+  INVALID,
+  }ControlOperation;
 
 // Definition for sensors
 #define SOIL_MOSITURE_3V3_PIN   D0  // 3V3 pin for soil moisture sensor
@@ -47,6 +66,7 @@ const char* mqtt_server = "192.168.43.21";
 #define DHTTYPE    DHT11      // DHT 11
 
 SDHT dht;
+
 typedef struct {
   float humidity;
   float temperature;
@@ -72,6 +92,8 @@ Ticker sendDataToServer;
 #define TIM_FREQ_DIV1   1
 #define TIM_FREQ_DIV16   16
 #define TIM_FREQ_DIV256   256
+
+int interruptTimerInMilliS = 5000;
 
 #define DEFAULT_DATA_SAMPLING_RATE_MS  2000
 
@@ -129,13 +151,13 @@ char *createJsonStringForSensorReadings(int soilMoisture, float temperature){
 
   StaticJsonBuffer<MAX_JSON_STRING_LENGTH> jsonBuffer;
   JsonObject& object = jsonBuffer.createObject();
-  object["From"] = "Sensor Node 1";
-  object["To"] = "Server Node";
-  object["Method"] = "sendSensorReadings";
-  object["Soil Moisture"] = soilMoisture;
-  object["Temperature"] = temperature;
+  object["from"] = "Sensor Node 1";
+  object["to"] = "Server Node";
+  object["method"] = "sendSensorReadings";
+  object["soilMoisture"] = soilMoisture;
+  object["temperature"] = temperature;
 
-  Serial.println("\nJSON string in function:");
+  Serial.println("\nJSON to be sent to Server:");
   object.prettyPrintTo(Serial);
   char jsonChar[MAX_JSON_STRING_LENGTH];
   object.printTo((char*)jsonChar, object.measureLength() + 1);
@@ -149,7 +171,7 @@ char *createJsonStringForSensorReadings(int soilMoisture, float temperature){
 void sendSensorReadingsToServerNode(int soilMoisture,  float temperature){
 
   char *message = createJsonStringForSensorReadings(soilMoisture, temperature);
-  Serial.println("Publishing message:");
+  Serial.println("\nPublishing message:");
   Serial.println(message);
   client.publish("toServer", message);
       // ... and resubscribe
@@ -188,7 +210,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "Sensor2-";
+    String clientId = "SensorNode1-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
@@ -198,7 +220,9 @@ void reconnect() {
       // ... and resubscribe
       client.subscribe("fromServer");
     } else {
-      Serial.print("failed, rc=");
+           Serial.println("Client_ID: ");
+      Serial.print(clientId.c_str());
+      Serial.println("failed, rc=");
       Serial.print(client.state());
       Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
@@ -207,19 +231,144 @@ void reconnect() {
   }
 }
 
-void callback(char* topic, byte* payload, unsigned int length) {
-  Serial.print("Message arrived [");
-  Serial.print(topic);
-  Serial.print("] ");
-  for (int i = 0; i < length; i++) {
-    Serial.print((char)payload[i]);
-  }
-  Serial.println();
-  client.publish("toServer", "Received command from server");
-      // ... and resubscribe
-  client.subscribe("fromServer");
-
+/*
+ * @desc: Interrupt Service Routine when desired time is achieved,
+ *        Reset the sleeping status to awake
+ */  
+void ICACHE_RAM_ATTR onTimerISR(){
+    if(sleepStatus == SLEEPING){
+    sleepStatus = AWAKE;
+    Serial.println("I'm awake!");
+    InitWiFi(); // Reconnect to WiFi
+    }
+    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
 }
+
+/*
+ * @desc: Get the operation for rpc command from remote shell of ThingsBoard
+ * @param: Return the operation
+ */
+ControlOperation getCommandOperation(char *command){
+    if(strstr(command,"turn on relay"))
+      return TURN_ON_RELAY;
+    else if(strstr(command, "turn off relay")) 
+      return TURN_OFF_RELAY;
+    else if(strstr (command, "sleep"))
+      return SLEEP;
+    else 
+      return INVALID;      
+  }
+  
+/******************Power functios*****************/
+/**
+ * @desc: Turn off wifi connection
+ */
+void turnOffWiFi(){
+  WiFi.mode(WIFI_OFF);
+  if(WiFi.status()== WL_DISCONNECTED){
+    Serial.println("WiFi is disconnected.");
+    }
+  }
+/**
+ * @desc: Switch between power modes
+ * @param: Desired power modes
+ */
+void switchPowerMode(PowerMode powerMode){
+    switch(powerMode){
+        case NORMAL_MODE:   break;  // Do nothing
+        case MODEM_SLEEP:   turnOffWiFi(); break;  // Turn off wifi
+        case LIGHT_SLEEP:   break;  // Turn off System Clock
+        case DEEP_SLEEP:   break;   // Everything off except RTC
+        default: Serial.println("Invalid power mode chosen!");
+    } // Rewrite timer1 number of ticks so to get the correct delay
+      // Number of ticks may be decrement before this function called.  
+      timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS));
+}  
+  
+/*
+ * @desc: Get the power mode for rpc command from remote shell of ThingsBoard
+ * @param: Command from rpc remote shell on ThingsBoard
+ * @retval: Return the power mode
+ */
+PowerMode getPowerMode(char *command){
+    if(strstr(command,"modem sleep"))
+      return MODEM_SLEEP;
+    else if(strstr(command, "light sleep"))
+      return LIGHT_SLEEP;
+    else if(strstr(command, "deep sleep")) 
+      return DEEP_SLEEP;
+    else
+      return NORMAL_MODE;   
+  }  
+
+/*
+ * @desc: Call Neccessary functions for rpc command from ThingsBoard server 
+ */
+void rpcCommandOperation(char *command){
+  if(command != NULL){
+    switch(getCommandOperation(command)){
+      //case TURN_ON_RELAY: digitalWrite(RELAY_IO, 1);
+      //                    relayState[0] = HIGH;     // update relay status on ThingsBoard
+      //                    client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+      //                   break;  // Turn on Relay and update status
+                        
+      //case TURN_OFF_RELAY: digitalWrite(RELAY_IO, 0);
+      //                     relayState[0] = LOW;     // update relay status on ThingsBoard
+      //                     client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+      //                     break;  // Turn off Relay and update status
+                         
+      case SLEEP:    switchPowerMode(getPowerMode(command));
+                     sleepStatus = SLEEPING;
+                     Serial.println("I'm going to sleep...");
+                     break;           // Choose power mode
+      default: Serial.println("Invalid operation chosen!");
+    }
+  }
+}
+/*
+ * @desc: get command type in rpc remote shell
+ * @param: message from rpc remote shell, desired command
+ * @retval: pointer input message
+ */
+char *getRpcCommandInStr(char *command, char *subStr){
+  Serial.print("Command");
+  Serial.println(command);
+  Serial.print("SubString");
+  Serial.println(subStr);
+    // Example
+    //{"method":"sendCommand","params":{"command":"turn on relay"}}
+    // If subStr is found in command, it will return the first
+    // character of subStr in command else return NULL
+    char *exist = strstr(command, subStr);  
+    if(exist != NULL){
+        return exist+10; // Get the command in str after "
+    }
+    return NULL;
+}
+
+
+void extractAndProcessDataFromServer(char *jsonStr){
+  // need to use char array to parse else the duplication will occur and jsonBuffer will be full.
+  // Ref:https://github.com/bblanchon/ArduinoJson/blob/5.x/examples/JsonParserExample/JsonParserExample.ino#L28
+  char jsonBuff[MAX_JSON_STRING_LENGTH];
+  char *command;
+  strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
+  Serial.println(jsonStr);
+  DynamicJsonBuffer jsonBuffer;
+  Serial.println("JSON received from Server");
+  Serial.print(jsonBuff);
+  JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
+
+  // Decode data from jsonString
+  Serial.println("Method :");
+  const char* Method = root["method"]; 
+  Serial.println(Method);
+   strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
+  Serial.println(jsonBuff);
+  command = getRpcCommandInStr(jsonBuff, "command");
+  Serial.println(command);
+  rpcCommandOperation(command);
+  }
 /*******************Timer functions****************/
 /*
  * @desc: Calcuate the number of ticks to write into timer
@@ -236,14 +385,6 @@ uint32_t getTimerTicks(uint32_t freq, int freqDivider, int milliSeconds){
   return ticks;
   }
 
-void ISR_FUNC(){
-  SensorData sensorData;
-  Serial.println("Times up!");
-  sensorData = getSensorData();
-  sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
-  }
-  
-
 // Init functions
 void InitSensor(){
   pinMode(DHT11_3V3_PIN, OUTPUT);
@@ -251,6 +392,39 @@ void InitSensor(){
   digitalWrite(DHT11_3V3_PIN, 1);    // Turn on the sensor
   digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
   }
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  char messageBuffer[length + 1];
+  strncpy (messageBuffer, (char*)payload, length);
+  messageBuffer[length] = '\0';
+  
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+  client.publish("toServer", "Received command from server");
+      // ... and resubscribe
+  client.subscribe("fromServer");
+  Serial.println("Message buffer:");
+  Serial.println(messageBuffer);
+  extractAndProcessDataFromServer(messageBuffer);
+
+}
+
+void ISR_FUNC(){
+  if(sleepStatus == AWAKE){
+  SensorData sensorData;
+  Serial.println("\n========================================");
+  Serial.println("  ISR to collect and send sensor data.  ");
+  Serial.println("  ========================================");
+  Serial.println("Collecting sensor data now...");
+  sensorData = getSensorData();
+  sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
+  } 
+}
   
 // Main functions
 void setup() {
@@ -259,6 +433,10 @@ void setup() {
   //delay(10);
   InitWiFi();
   InitSensor();
+  // Initialise timer
+  timer1_attachInterrupt(onTimerISR);
+  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
+  timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS));
   
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
@@ -269,7 +447,7 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
- if ( !client.connected() ) {
+ if ( !client.connected() && sleepStatus== AWAKE) {
     reconnect();
   }
 
