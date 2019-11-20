@@ -95,7 +95,7 @@ Ticker sendDataToServer;
 
 int interruptTimerInMilliS = 5000;
 
-#define DEFAULT_DATA_SAMPLING_RATE_MS  2000
+#define DEFAULT_DATA_SAMPLING_RATE_MS  20000
 
 /******************Sensor functions***************/  
 /*
@@ -420,7 +420,7 @@ void ISR_FUNC(){
   SensorData sensorData;
   Serial.println("\n========================================");
   Serial.println("  ISR to collect and send sensor data.  ");
-  Serial.println("  ========================================");
+  Serial.println("========================================");
   Serial.println("Collecting sensor data now...");
   sensorData = getSensorData();
   sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);

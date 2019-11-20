@@ -14,6 +14,7 @@
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
 #include <string.h>
+#include <Ticker.h>
 #include <MQTT.h>
 #include <uMQTTBroker.h>
 
@@ -46,6 +47,8 @@ int i = 0;
 #define TIM_FREQ_DIV256   256
 
 int interruptTimerInMilliS = 5000;
+
+Ticker callbackFlag;
 
 // Assume relay are off 
 boolean relayState[] = {false};
@@ -92,7 +95,19 @@ struct SensorParameter{
    String soilMoistureParam = "soilMoisture";       // Soil Moisture Sensor Parameter
    String dht11Param = "temperature";               // DHT11 Sensor Parameter
   };
-  
+
+
+// Variable to makesure callback function for RPC only run
+// once because callback function called multiple times
+// (Due to "Device is offline")
+static boolean callbackCalled = false;
+
+// MACROs for callback function
+#define isCallbackFuncCalled      callbackCalled
+#define setCallbackFuncFlag       callbackCalled = true
+#define resetCallbackFuncFlag     callbackCalled = false  
+
+static int DELAY_FOR_CALLBACK = 0;    // in ms
 /*
  * @desc: bypass the characters of str based on length
  * @param: str to be bypass, the length of bypass
@@ -249,20 +264,6 @@ uint32_t getTimerTicks(uint32_t freq, int freqDivider, int milliSeconds){
   return ticks;
   }
 
-
-/*
- * @desc: Interrupt Service Routine when desired time is achieved,
- *        Reset the sleeping status to awake
- */  
-void ICACHE_RAM_ATTR onTimerISR(){
-    if(sleepStatus == SLEEPING){
-    sleepStatus = AWAKE;
-    Serial.println("I'm awake!");
-    }
-    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
-}
-
-
 /********************RPC functions*****************/
 /*
  * @desc: get command type in rpc remote shell
@@ -365,6 +366,7 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     String responseTopic = String(topic);
     responseTopic.replace("request", "response");
     client.publish(responseTopic.c_str(), get_relay_status().c_str());
+    DELAY_FOR_CALLBACK = 0;
   } 
   else if (methodName.equals("setRelayStatus")) {
     // Update GPIO status and reply
@@ -373,6 +375,7 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     responseTopic.replace("request", "response");     
     client.publish(responseTopic.c_str(), get_relay_status().c_str());
     client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+    DELAY_FOR_CALLBACK = 0;
   }
   else if(methodName.equals("sendCommand")){
     myBroker.publish("fromServer", fullRpcMessage);
@@ -380,6 +383,7 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
     Serial.println(command);
     rpcCommandOperation(command);                  // Operate based on command
+    DELAY_FOR_CALLBACK = 5000;
   }
 }
 /*
@@ -387,39 +391,41 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
  */
 void on_message(const char* topic, byte* payload, unsigned int length) {
 
+  if(!isCallbackFuncCalled){
+    Serial.println("\n========================================");
+    Serial.println("      Received message from server.      ");
+    Serial.println(  "========================================");
 
-  Serial.println("\nMessage from server received.");
+    char json[length + 1];
+    char fullRpcMessage[length + 1];
+    long dataInInt;
+    strncpy (json, (char*)payload, length);
+    json[length] = '\0';
 
-  char json[length + 1];
-  char fullRpcMessage[length + 1];
-  long dataInInt;
-  strncpy (json, (char*)payload, length);
-  json[length] = '\0';
-
-  strncpy (fullRpcMessage, json, length); // Another copy of json because
-  fullRpcMessage[length] = '\0';          // json will be decode later to find
+    strncpy (fullRpcMessage, json, length); // Another copy of json because
+    fullRpcMessage[length] = '\0';          // json will be decode later to find
                                           // request method
-  Serial.print("Topic: ");
-  Serial.println(topic);
-  Serial.print("json: ");
-  Serial.println(json);
+    Serial.print("Topic: ");
+    Serial.println(topic);
+    Serial.print("json: ");
+    Serial.println(json);
 
-  // Decode JSON request
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& data = jsonBuffer.parseObject((char*)json);
+    // Decode JSON request
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& data = jsonBuffer.parseObject((char*)json);
 
-  if (!data.success())
-  {
-    Serial.println("parseObject() failed");
-    return;
+    if (!data.success())
+    {
+      Serial.println("parseObject() failed");
+      return;
+    }
+
+    // Check request method
+    String methodName = String((const char*)data["method"]);
+    Serial.println(methodName);
+    processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
+    setCallbackFuncFlag;
   }
-
-  // Check request method
-  String methodName = String((const char*)data["method"]);
-  Serial.println(methodName);
-  processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
-
-
 }
 
 /*******************GPIO functions****************/  
@@ -467,7 +473,6 @@ void switchPowerMode(PowerMode powerMode){
         default: Serial.println("Invalid power mode chosen!");
     } // Rewrite timer1 number of ticks so to get the correct delay
       // Number of ticks may be decrement before this function called.  
-      timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS));
 }  
 
 /**
@@ -529,7 +534,15 @@ void reconnect() {
   }
 }
 
-
+void resetCallBackFuncFlag(){
+  // If the flag is set
+  if(isCallbackFuncCalled){
+    delay(DELAY_FOR_CALLBACK);
+    Serial.println("Resetting callback function flag.");
+    resetCallbackFuncFlag;
+  }
+}
+  
 // Main functions
 void setup() {
    // put your setup code here, to run once:
@@ -537,10 +550,6 @@ void setup() {
   pinMode(RELAY_IO, OUTPUT);
   InitWiFi();
 
-  timer1_attachInterrupt(onTimerISR);
-  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
-  timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS));
-  
   // Start the broker
   Serial.println("Starting MQTT broker");
   myBroker.init();
@@ -548,6 +557,7 @@ void setup() {
   client.setServer( thingsboardServer, 1883 );
   client.setCallback(on_message);
 
+  callbackFlag.attach_ms(2000, resetCallBackFuncFlag);
   // Subsribe to topic
   myBroker.subscribe("fromServer");  
   myBroker.subscribe("toServer"); 
@@ -558,6 +568,5 @@ void loop() {
   if ( !client.connected()) {
     reconnect();
   }
-
   client.loop();
 }

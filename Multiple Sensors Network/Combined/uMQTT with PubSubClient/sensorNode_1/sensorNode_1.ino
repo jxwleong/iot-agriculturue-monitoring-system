@@ -95,7 +95,7 @@ Ticker sendDataToServer;
 
 int interruptTimerInMilliS = 5000;
 
-#define DEFAULT_DATA_SAMPLING_RATE_MS  2000
+#define DEFAULT_DATA_SAMPLING_RATE_MS  20000
 
 /******************Sensor functions***************/  
 /*
@@ -193,7 +193,6 @@ void sensorPowerSwitch(SensorMode sensorMode){
 void InitWiFi() {
   Serial.println("Connecting to AP ...");
   // attempt to connect to WiFi network
-
   WiFi.begin(WIFI_AP, WIFI_PASSWORD);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
@@ -239,7 +238,6 @@ void ICACHE_RAM_ATTR onTimerISR(){
     if(sleepStatus == SLEEPING){
     sleepStatus = AWAKE;
     Serial.println("I'm awake!");
-    InitWiFi(); // Reconnect to WiFi
     }
     timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
 }
@@ -419,7 +417,7 @@ void ISR_FUNC(){
   SensorData sensorData;
   Serial.println("\n========================================");
   Serial.println("  ISR to collect and send sensor data.  ");
-  Serial.println("  ========================================");
+  Serial.println("========================================");
   Serial.println("Collecting sensor data now...");
   sensorData = getSensorData();
   sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);

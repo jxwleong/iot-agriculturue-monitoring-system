@@ -17,12 +17,12 @@
 #include <string.h>
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"
-#define WIFI_PASSWORD "pdk47322"
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"
 
-#define TOKEN "lqT7NtbuQVLP08sOhCIa"
+#define TOKEN "ADDRESS_TOKEN"
 
-char thingsboardServer[] = "demo.thingsboard.io";
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";
 
 WiFiClient wifiClient;
 PubSubClient client(wifiClient);
@@ -41,6 +41,15 @@ int status = WL_IDLE_STATUS;
 // We assume that all GPIOs are LOW
 boolean gpioState[] = {false, false, false};
 
+// Variable to makesure callback function for RPC only run
+// once because callback function called multiple times
+// (Due to "Device is offline")
+static boolean callbackCalled = false;
+
+// MACROs for callback function
+#define isCallbackFuncCalled      callbackCalled
+#define setCallbackFuncFlag       callbackCalled = true
+#define resetCallbackFuncFlag     callbackCalled = false
 /********************RPC functions*****************/
 /*
  * @desc: bypass the json string and get command type in rpc remote shell
@@ -78,32 +87,68 @@ int getRpcValInInt(char *str){
  */
 void on_message(const char* topic, byte* payload, unsigned int length) {
 
-  Serial.println("\nMessage from server received.");
+  if(!isCallbackFuncCalled){
+    Serial.println("\nMessage from server received.");
 
-  char json[length + 1];
-  char *data;
-  long dataInInt;
-  strncpy (json, (char*)payload, length);
-  json[length] = '\0';
+    char json[length + 1];
+    char fullRpcMessage[length + 1];
+    char *data;
+    long dataInInt;
+    strncpy (json, (char*)payload, length);
+    json[length] = '\0';
+  
+    strncpy (fullRpcMessage, json, length); // Another copy of json because
+    fullRpcMessage[length] = '\0'; 
 
-  Serial.print("json: ");
-  Serial.println(json);
-  // example of json received from rpc remote shell
-  // {"method":"sendCommand","params":{"command":"1"}}
-  // command are the variable that type in the rpc remote shell
-  // since json is in string, we can bypass it by 44 characters to gt
-  // "1"
-  data = getRpcCommandInStr(json, 44);
-  if(strstr(data, "turn on led")){
-    digitalWrite(GPIO2_PIN, 1);
+    Serial.print("json: ");
+    Serial.println(json);
+    // Decode JSON request
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& dataJson = jsonBuffer.parseObject((char*)json);
+
+    if (!dataJson.success())
+    {
+     Serial.println("parseObject() failed");
+     return;
+   }
+    char *reqID = getRpcCommandInStr((char*)topic, 26);
+     int rpcVal = strtol(reqID, NULL, 10);
+    Serial.println(rpcVal);
+    // Check request method
+    String methodName = String((const char*)dataJson["method"]);
+    Serial.println(methodName);
+    // example of json received from rpc remote shell
+    // {"method":"sendCommand","params":{"command":"1"}}
+    // command are the variable that type in the rpc remote shell
+    // since json is in string, we can bypass it by 44 characters to gt
+    // "1"
+    data = getRpcCommandInStr(fullRpcMessage, 44);
+    if(strstr(data, "turn on led")){
+      digitalWrite(GPIO2_PIN, 1);
+     }
+   else if(strstr(data, "turn off led")){
+      digitalWrite(GPIO2_PIN, 0);
+     }
+   else{
+    dataInInt = getRpcValInInt(data);
+    //String reqID = "$request_id";
+     //char *rpcResponse= "{ \"ok\": true,\"platform\": \"os.platform()\",\"type\":\" os.type()\",\"release\": \"os.release()\" }"; 
+    char rpcResponse[128];
+    sprintf(rpcResponse, "{\"done\": \"true\", \"requestId\" : %i, \"data\": [{\"stdout\": \"Hello\"}]}", rpcVal);
+    Serial.println(rpcResponse);
+    Serial.println("\n Data received in int:");
+    Serial.println(dataInInt);
+    String responseTopic = String(topic);
+    //Serial.println(responseTopic);
+    responseTopic.replace("request", "response");  
+    Serial.println(responseTopic);   
+    client.publish(responseTopic.c_str(), rpcResponse);
+    //client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+    //client.subscribe("v1/devices/me/rpc/response/+");
+    //client.publish("v1/devices/me/rpc/response/$request_id", "{\"done\": \"true\", \"data\": [{\"stdout\": \"Hello\"}]}");
+    ////client.subscribe("v1/devices/me/rpc/request/+");
+    setCallbackFuncFlag;
     }
-  else if(strstr(data, "turn off led")){
-    digitalWrite(GPIO2_PIN, 0);
-    }
-  else{
-  dataInInt = getRpcValInInt(data);
-  Serial.println("\n Data received in int:");
-  Serial.println(dataInInt);
   }
 }
 
@@ -147,9 +192,6 @@ void reconnect() {
       Serial.println( "[DONE]" );
       // Subscribing to receive RPC requests
       client.subscribe("v1/devices/me/rpc/request/+");
-      // Sending current GPIO status
-     // Serial.println("Sending current GPIO status ...");
-      //client.publish("v1/devices/me/attributes", get_gpio_status().c_str());
     } else {
       Serial.print( "[FAILED] [ rc = " );
       Serial.print( client.state() );
@@ -177,7 +219,7 @@ void loop() {
   if ( !client.connected() ) {
     reconnect();
   }
-
+  resetCallbackFuncFlag;
   client.loop();
 }
 
