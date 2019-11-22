@@ -23,7 +23,7 @@
 #define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
 
 
-String TOKEN = "rB8vcDdciynDrDTfK5wY";      // Device's Token address created on ThingsBoard
+String TOKEN = "yIXyjYSSWZupo67gw1p4";      // Device's Token address created on ThingsBoard
 
 char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
 
@@ -457,33 +457,7 @@ void set_relay_status(int pin, boolean enabled) {
     relayState[0] = enabled;
   }
 }
-
-
-/******************Power functios*****************/
-/**
- * @desc: Switch between power modes
- * @param: Desired power modes
- */
-void switchPowerMode(PowerMode powerMode){
-    switch(powerMode){
-        case NORMAL_MODE:   break;  // Do nothing
-        case MODEM_SLEEP:   turnOffWiFi(); break;  // Turn off wifi
-        case LIGHT_SLEEP:   break;  // Turn off System Clock
-        case DEEP_SLEEP:   break;   // Everything off except RTC
-        default: Serial.println("Invalid power mode chosen!");
-    } // Rewrite timer1 number of ticks so to get the correct delay
-      // Number of ticks may be decrement before this function called.  
-}  
-
-/**
- * @desc: Turn off wifi connection
- */
-void turnOffWiFi(){
-  WiFi.mode(WIFI_OFF);
-  if(WiFi.status()== WL_DISCONNECTED){
-    Serial.println("WiFi is disconnected.");
-    }
-  }
+ 
 /*******************WiFi functions****************/  
 /*
  * @desc: Connect device to WiFi
@@ -549,18 +523,11 @@ void setup() {
   Serial.begin(115200);
   pinMode(RELAY_IO, OUTPUT);
   InitWiFi();
-
-  // Start the broker
-  Serial.println("Starting MQTT broker");
-  myBroker.init();
   
   client.setServer( thingsboardServer, 1883 );
   client.setCallback(on_message);
 
   callbackFlag.attach_ms(2000, resetCallBackFuncFlag);
-  // Subsribe to topic
-  myBroker.subscribe("fromServer");  
-  myBroker.subscribe("toServer"); 
 }
 
 void loop() {
