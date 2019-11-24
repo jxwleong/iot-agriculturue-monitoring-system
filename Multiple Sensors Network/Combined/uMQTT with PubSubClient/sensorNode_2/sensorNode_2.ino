@@ -19,8 +19,8 @@
 
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
-#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
 // Definition for ADC
 #define ADC_10_BIT_RESOLUTION   1024     // resolution of ESP8266 ADC
@@ -31,7 +31,7 @@ int status = WL_IDLE_STATUS;
 WiFiClient wifiClient;                   // Wifi clients created to connect to internet and 
 PubSubClient client(wifiClient);         // ThingsBoard
 
-const char* mqtt_server = "192.168.43.140";  // Ip address of Server Node
+const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
 
 #define MAX_MQTT_MESSAGE_LENGTH     128   // Size of message to be sent to server node
 
@@ -240,7 +240,8 @@ void ICACHE_RAM_ATTR onTimerISR(){
     if(sleepStatus == SLEEPING){
     sleepStatus = AWAKE;
     Serial.println("I'm awake!");
-    InitWiFi(); // Reconnect to WiFi
+    //InitWiFi(); // Reconnect to WiFi
+    WiFi.begin(WIFI_AP, WIFI_PASSWORD);
     }
     timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
 }

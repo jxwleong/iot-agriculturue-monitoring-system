@@ -19,13 +19,13 @@
 #include <uMQTTBroker.h>
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
-#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
 
-String TOKEN = "rB8vcDdciynDrDTfK5wY";      // Device's Token address created on ThingsBoard
+String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
 
-char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
 
 // Global variable
 int status = WL_IDLE_STATUS;
@@ -108,6 +108,13 @@ static boolean callbackCalled = false;
 #define resetCallbackFuncFlag     callbackCalled = false  
 
 static int DELAY_FOR_CALLBACK = 0;    // in ms
+
+// Use pre-defined char because when message sent the json string is corrupted 
+// if use object create (json string correct before sent)
+char  *jsonSetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"setRelayStatus\" ,\"attribute\":%d}";
+char  *jsonGetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"getRelayStatus\"}";
+
+char jsonMessageForRelay[MAX_JSON_STRING_LENGTH];
 /*
  * @desc: bypass the characters of str based on length
  * @param: str to be bypass, the length of bypass
@@ -182,10 +189,12 @@ void extractAndProcessDataFromClient(char *jsonStr){
   Serial.println("");
   
   const char* Method = root["method"]; 
+  String methodStr = String(Method);
   Serial.print("Method: ");
   Serial.print(Method); 
   Serial.println("");
-  
+
+  if(methodStr.equals("sendSensorReadings")){
   int soilMoisture = root["soilMoisture"];
   Serial.print("Soil Moisture: ");
   Serial.print(soilMoisture);  
@@ -202,6 +211,19 @@ void extractAndProcessDataFromClient(char *jsonStr){
   Serial.println("Uploading sensor data to ThingsBoard...");
   uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
   uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
+  }
+  else{
+  int attribute = root["attribute"]; 
+  Serial.print("Attribute: ");
+  Serial.print(attribute);  
+  Serial.println("");
+
+  if(attribute == 1)
+    relayState[0] = true;
+  else
+    relayState[0] = false;
+    
+    }
   }
   
 /*
@@ -314,46 +336,6 @@ ControlOperation getCommandOperation(char *command){
       return INVALID;      
   }
 
-/*
- * @desc: Get the power mode for rpc command from remote shell of ThingsBoard
- * @param: Command from rpc remote shell on ThingsBoard
- * @retval: Return the power mode
- */
-PowerMode getPowerMode(char *command){
-    if(strstr(command,"modem sleep"))
-      return MODEM_SLEEP;
-    else if(strstr(command, "light sleep"))
-      return LIGHT_SLEEP;
-    else if(strstr(command, "deep sleep")) 
-      return DEEP_SLEEP;
-    else
-      return NORMAL_MODE;   
-  }  
-
-/*
- * @desc: Call Neccessary functions for rpc command from ThingsBoard server 
- */
-void rpcCommandOperation(char *command){
-  if(command != NULL){
-    switch(getCommandOperation(command)){
-      case TURN_ON_RELAY: digitalWrite(RELAY_IO, 1);
-                          relayState[0] = HIGH;     // update relay status on ThingsBoard
-                          client.publish("v1/devices/me/attributes", get_relay_status().c_str());
-                          break;  // Turn on Relay and update status
-                        
-      case TURN_OFF_RELAY: digitalWrite(RELAY_IO, 0);
-                           relayState[0] = LOW;     // update relay status on ThingsBoard
-                           client.publish("v1/devices/me/attributes", get_relay_status().c_str());
-                           break;  // Turn off Relay and update status
-                         
-      //case SLEEP:    switchPowerMode(getPowerMode(command));
-       //              sleepStatus = SLEEPING;
-       //              Serial.println("I'm going to sleep...");
-        //             break;           // Choose power mode
-      default: Serial.println("Invalid operation chosen!");
-    }
-  }
-}
 
 /*
  * @desc: Call functions to operate based on request from ThingsBoard Server
@@ -363,6 +345,7 @@ void rpcCommandOperation(char *command){
 void processRequestFromThingsBoard(String methodName, JsonObject& data, const char* topic, char *fullRpcMessage){
   if (methodName.equals("getRelayStatus")) {
     // Reply with GPIO status
+    myBroker.publish("toRelay", jsonGetRelayStatus);
     String responseTopic = String(topic);
     responseTopic.replace("request", "response");
     client.publish(responseTopic.c_str(), get_relay_status().c_str());
@@ -370,6 +353,12 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
   } 
   else if (methodName.equals("setRelayStatus")) {
     // Update GPIO status and reply
+    Serial.println("enabled: ");
+    boolean relayStatus = data["params"]["enabled"];
+    sprintf(jsonMessageForRelay, jsonSetRelayStatus, relayStatus);
+    Serial.print(relayStatus);
+    Serial.println(jsonMessageForRelay);
+    myBroker.publish("toRelay", jsonMessageForRelay);
     set_relay_status(data["params"]["pin"], data["params"]["enabled"]);
     String responseTopic = String(topic);
     responseTopic.replace("request", "response");     
@@ -382,7 +371,7 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     Serial.println(fullRpcMessage);
     command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
     Serial.println(command);
-    rpcCommandOperation(command);                  // Operate based on command
+    //rpcCommandOperation(command);                  // Operate based on command
     DELAY_FOR_CALLBACK = 5000;
   }
 }
@@ -428,7 +417,7 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
   }
 }
 
-/*******************GPIO functions****************/  
+/*******************Relay functions****************/  
 /*
  * @desc: Get the relay pin status
  */ 
@@ -457,7 +446,6 @@ void set_relay_status(int pin, boolean enabled) {
     relayState[0] = enabled;
   }
 }
-
 
 /******************Power functios*****************/
 /**
@@ -560,7 +548,8 @@ void setup() {
   callbackFlag.attach_ms(2000, resetCallBackFuncFlag);
   // Subsribe to topic
   myBroker.subscribe("fromServer");  
-  myBroker.subscribe("toServer"); 
+  myBroker.subscribe("toServer");  
+  myBroker.subscribe("toRelay"); 
 }
 
 void loop() {

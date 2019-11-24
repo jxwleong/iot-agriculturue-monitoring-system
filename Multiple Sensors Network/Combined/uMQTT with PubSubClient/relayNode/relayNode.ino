@@ -15,17 +15,10 @@
 #include <PubSubClient.h>
 #include <string.h>
 #include <Ticker.h>
-#include <MQTT.h>
-#include <uMQTTBroker.h>
 
 // Definition for WiFi
-#define WIFI_AP "HUAWEI nova 2i"         // WiFi SSID
-#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
-
-
-String TOKEN = "yIXyjYSSWZupo67gw1p4";      // Device's Token address created on ThingsBoard
-
-char thingsboardServer[] = "demo.thingsboard.io";   // ip or host of ThingsBoard 
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
 // Global variable
 int status = WL_IDLE_STATUS;
@@ -34,6 +27,7 @@ WiFiClient wifiClient;              // Wifi clients created to connect to intern
 PubSubClient client(wifiClient);    // ThingsBoard
 ThingsBoard tb(wifiClient);
 
+const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
 
 #define MAX_JSON_STRING_LENGTH  200
 
@@ -71,6 +65,7 @@ typedef enum{
   }SleepStatus;  
   
 volatile SleepStatus sleepStatus = AWAKE;
+
 // Definition for RPC functions
 typedef enum{
   TURN_ON_RELAY,
@@ -78,7 +73,8 @@ typedef enum{
   SLEEP,
   INVALID,
   }ControlOperation;
-  
+
+
 char *command;  // Command from rpc remote shell
 
 // MQTT definition and function
@@ -108,145 +104,6 @@ static boolean callbackCalled = false;
 #define resetCallbackFuncFlag     callbackCalled = false  
 
 static int DELAY_FOR_CALLBACK = 0;    // in ms
-/*
- * @desc: bypass the characters of str based on length
- * @param: str to be bypass, the length of bypass
- */
-void bypassCharactersInStr(char **str, int length){
-    while(length != 0){
-        ++*str;
-        length--;
-    }
-}
-
-/*
- * @desc: Skip any whitespaces of str
- * @param: Str with whitespaces to bypass
- */
-void skipWhiteSpaces(char **str){
-    while(**str == ' ')
-        ++*str;
-}
-/*
- * @desc: Get the sensor node number from MQTT client message
- * @param: Message from client, parameter (keyboard) to search
- * @retval: Sensor node number
- */
-int getSensorNodeNumber(char *message, char *parameter){
-    int sensorNodeNumber;
-    int parameterLength = strlen(parameter);
-    
-    // move to the last character of matched string        
-    bypassCharactersInStr(&message, parameterLength); // -1 minus the '/0'
-    skipWhiteSpaces(&message);
-    // -0 to get int based on ASCII table
-    sensorNodeNumber = *message - '0';
-    return sensorNodeNumber;
-}
-
-SensorParameter getSensorParameterFromClient(const char *from){
-  SensorParameter sensorParameter;
-  String myString = String(from);
-  char sensorNumber = myString.charAt(12);  // Get the sensor node number 0-9 MAX since
-                                            // uMQTT broker allow 8 clients
-  // Concatenate paramter with sensor node number
-  sensorParameter.soilMoistureParam = sensorParameter.soilMoistureParam + sensorNumber;
-  sensorParameter.dht11Param = sensorParameter.dht11Param + sensorNumber;
-  
-  return sensorParameter;
-    
-}
-/*
- * @desc: Parse JSON format string and extract necessary info
- * @param: String in JSON format
- */ 
-void extractAndProcessDataFromClient(char *jsonStr){
-  // need to use char array to parse else the duplication will occur and jsonBuffer will be full.
-  // Ref:https://github.com/bblanchon/ArduinoJson/blob/5.x/examples/JsonParserExample/JsonParserExample.ino#L28
-  char jsonBuff[MAX_JSON_STRING_LENGTH];
-  strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
-  
-  DynamicJsonBuffer jsonBuffer;
-  JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
-
-  // Decode data from jsonString
-  Serial.println("\nDecoded JSON received from clients:");
-  const char* from = root["from"]; 
-  Serial.print("From: ");
-  Serial.print(from); 
-  Serial.println("");
-  
-  const char* to = root["to"]; 
-  Serial.print("To: ");
-  Serial.print(to); 
-  Serial.println("");
-  
-  const char* Method = root["method"]; 
-  Serial.print("Method: ");
-  Serial.print(Method); 
-  Serial.println("");
-  
-  int soilMoisture = root["soilMoisture"];
-  Serial.print("Soil Moisture: ");
-  Serial.print(soilMoisture);  
-  Serial.print(" %");
-  Serial.println("");
-  
-  float temperature = root["temperature"];
-  Serial.print("Temperature: ");
-  Serial.print(temperature); 
-  Serial.print(" C");
-  Serial.println("");
-  
-  SensorParameter sensorParameter = getSensorParameterFromClient(from);
-  Serial.println("Uploading sensor data to ThingsBoard...");
-  uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
-  uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
-  }
-  
-/*
- * Custom broker class with overwritten callback functions
- */
-class myMQTTBroker: public uMQTTBroker
-{
-public:
-    virtual bool onConnect(IPAddress addr, uint16_t client_count) {
-      Serial.println(addr.toString()+" connected");
-      return true;
-    }
-    
-    virtual bool onAuth(String username, String password) {
-      Serial.println("Username/Password: "+username+"/"+password);
-      return true;
-    }
-    
-    virtual void onData(String topic, const char *data, uint32_t length) {
-      char data_str[length+1];
-      os_memcpy(data_str, data, length);
-      data_str[length] = '\0';
-
-      Serial.println("\n========================================");
-      Serial.println("      Received message from clients.      ");
-      Serial.println(  "========================================");
-
-      Serial.println("received topic '"+topic+"' with data '"+(String)data_str+"'");
-      extractAndProcessDataFromClient(data_str);
-    }
-};
-
-myMQTTBroker myBroker;
-
-
-/*
- * @desc: Upload sensor reading to ThingsBoard and display on widget
- * @param: sensor reading, parameter created on ThingsBoard
- */
-void uploadReadingsToThingsBoard(float sensorData, char *deviceParameter){
-  tb.sendTelemetryFloat(deviceParameter, sensorData);   // Upload data to ThingsBoard
-  }  
-  
-
-/********************RPC functions*****************/
 
 /*******************Timer functions****************/
 /*
@@ -338,12 +195,12 @@ void rpcCommandOperation(char *command){
     switch(getCommandOperation(command)){
       case TURN_ON_RELAY: digitalWrite(RELAY_IO, 1);
                           relayState[0] = HIGH;     // update relay status on ThingsBoard
-                          client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+                          client.publish("v1/devices/me/attributes", getRelayStatus().c_str());
                           break;  // Turn on Relay and update status
                         
       case TURN_OFF_RELAY: digitalWrite(RELAY_IO, 0);
                            relayState[0] = LOW;     // update relay status on ThingsBoard
-                           client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+                           client.publish("v1/devices/me/attributes", getRelayStatus().c_str());
                            break;  // Turn off Relay and update status
                          
       //case SLEEP:    switchPowerMode(getPowerMode(command));
@@ -355,84 +212,11 @@ void rpcCommandOperation(char *command){
   }
 }
 
-/*
- * @desc: Call functions to operate based on request from ThingsBoard Server
- * @param: Method to process (SendCommand, setRelayPin,...), Data (json object)
- *         Subsribe topic, Full command request from rpc remote shell.
- */
-void processRequestFromThingsBoard(String methodName, JsonObject& data, const char* topic, char *fullRpcMessage){
-  if (methodName.equals("getRelayStatus")) {
-    // Reply with GPIO status
-    String responseTopic = String(topic);
-    responseTopic.replace("request", "response");
-    client.publish(responseTopic.c_str(), get_relay_status().c_str());
-    DELAY_FOR_CALLBACK = 0;
-  } 
-  else if (methodName.equals("setRelayStatus")) {
-    // Update GPIO status and reply
-    set_relay_status(data["params"]["pin"], data["params"]["enabled"]);
-    String responseTopic = String(topic);
-    responseTopic.replace("request", "response");     
-    client.publish(responseTopic.c_str(), get_relay_status().c_str());
-    client.publish("v1/devices/me/attributes", get_relay_status().c_str());
-    DELAY_FOR_CALLBACK = 0;
-  }
-  else if(methodName.equals("sendCommand")){
-    myBroker.publish("fromServer", fullRpcMessage);
-    Serial.println(fullRpcMessage);
-    command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
-    Serial.println(command);
-    rpcCommandOperation(command);                  // Operate based on command
-    DELAY_FOR_CALLBACK = 5000;
-  }
-}
-/*
- * @desc: The callback for when a PUBLISH message is received from the server.
- */
-void on_message(const char* topic, byte* payload, unsigned int length) {
-
-  if(!isCallbackFuncCalled){
-    Serial.println("\n========================================");
-    Serial.println("      Received message from server.      ");
-    Serial.println(  "========================================");
-
-    char json[length + 1];
-    char fullRpcMessage[length + 1];
-    long dataInInt;
-    strncpy (json, (char*)payload, length);
-    json[length] = '\0';
-
-    strncpy (fullRpcMessage, json, length); // Another copy of json because
-    fullRpcMessage[length] = '\0';          // json will be decode later to find
-                                          // request method
-    Serial.print("Topic: ");
-    Serial.println(topic);
-    Serial.print("json: ");
-    Serial.println(json);
-
-    // Decode JSON request
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& data = jsonBuffer.parseObject((char*)json);
-
-    if (!data.success())
-    {
-      Serial.println("parseObject() failed");
-      return;
-    }
-
-    // Check request method
-    String methodName = String((const char*)data["method"]);
-    Serial.println(methodName);
-    processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
-    setCallbackFuncFlag;
-  }
-}
-
 /*******************GPIO functions****************/  
 /*
  * @desc: Get the relay pin status
  */ 
-String get_relay_status() {
+String getRelayStatus() {
   // Prepare gpio JSON payload string
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject& data = jsonBuffer.createObject();
@@ -449,7 +233,7 @@ String get_relay_status() {
  * @desc: Set the relay pin status
  * @param: Relay pin, data to write (HIGH/ LOW)
  */ 
-void set_relay_status(int pin, boolean enabled) {
+void setRelayStatus(int pin, boolean enabled) {
   if (pin == RELAY_PIN) {
     // Output Relay state
     digitalWrite(RELAY_IO, enabled ? HIGH : LOW);
@@ -475,46 +259,141 @@ void InitWiFi() {
  
 }
 
-
 /*
  * @desc: Connect device to ThingsBoard/ Reconnect to WiFi
  */
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
-    status = WiFi.status();
-    if ( status != WL_CONNECTED) {
-      WiFi.begin(WIFI_AP, WIFI_PASSWORD);
-      while (WiFi.status() != WL_CONNECTED) {
-        delay(500);
-        Serial.print(".");
-      }
-      Serial.println("Connected to AP");
-    }
-    Serial.println("Connecting to ThingsBoard node ...");
-    // Attempt to connect (clientId, username, password)
-    if ( client.connect("server Node", TOKEN.c_str(), NULL)  ) {
-      Serial.println( "[DONE]" );
-      // Subscribing to receive RPC requests
-      client.subscribe("v1/devices/me/rpc/request/+");
-      Serial.println( "Subsribed to RPC requests" );
+    Serial.print("Attempting MQTT connection...");
+    // Create a random client ID
+    String clientId = "relayNode-";
+    clientId += String(random(0xffff), HEX);
+    // Attempt to connect
+    if (client.connect(clientId.c_str())) {
+      Serial.println("connected");
+      // Once connected, publish an announcement...
+      client.publish("toServer", "I'm connected");
+      // ... and resubscribe
+      client.subscribe("toRelay");
     } else {
-      Serial.print( "[FAILED] [ rc = " );
-      Serial.print( client.state() );
-      Serial.println( " : retrying in 5 seconds]" );
+      Serial.println("Client_ID: ");
+      Serial.print(clientId.c_str());
+      Serial.println("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
       // Wait 5 seconds before retrying
-      delay( 5000 );
+      delay(5000);
     }
   }
 }
 
-void resetCallBackFuncFlag(){
-  // If the flag is set
-  if(isCallbackFuncCalled){
-    delay(DELAY_FOR_CALLBACK);
-    Serial.println("Resetting callback function flag.");
-    resetCallbackFuncFlag;
+
+/*
+ * @desc: Create Json Object to store data and convert it into string
+ * @param: Relay status
+ * @retval: String that contain necessary info for server node
+ */
+char *createJsonStringToUpdateRelayStatus(int attribute){
+
+  StaticJsonBuffer<MAX_JSON_STRING_LENGTH> jsonBuffer;
+  JsonObject& object = jsonBuffer.createObject();
+  object["from"] = "Relay Node";
+  object["to"] = "Server Node";
+  object["method"] = "relayCommand";
+  object["attribute"] = attribute; // Relay Status
+  
+  Serial.println("\nJSON to be sent to Server:");
+  object.prettyPrintTo(Serial);
+  char jsonChar[MAX_JSON_STRING_LENGTH];
+  object.printTo((char*)jsonChar, object.measureLength() + 1);
+  return (char *)jsonChar;
+}
+  
+void processCommandFromServer(char *command, int attribute){
+  if(strstr(command, "setRelayStatus")){
+    Serial.println("Toggle relay pin now.");
+    setRelayStatus(RELAY_PIN, attribute);
+    char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
+    client.publish("toServer", replyToServer);
+    //// resubscribe
+    client.subscribe("toRelay");
   }
+
+  else if(strstr(command, "getRelayStatus")){
+    char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
+    client.publish("toServer", replyToServer);
+    //// resubscribe
+    client.subscribe("toRelay");
+    }
+  
+}
+
+void extractAndProcessDataFromServer(char *jsonStr){
+  // need to use char array to parse else the duplication will occur and jsonBuffer will be full.
+  // Ref:https://github.com/bblanchon/ArduinoJson/blob/5.x/examples/JsonParserExample/JsonParserExample.ino#L28
+  char jsonBuff[MAX_JSON_STRING_LENGTH];
+  strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
+  
+  DynamicJsonBuffer jsonBuffer;
+  JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
+
+  Serial.println("\n========================================");
+  Serial.println("      Received message from server.      ");
+  Serial.println(  "========================================");  
+
+  // Decode data from jsonString
+  Serial.println("\nDecoded JSON received from server:");
+  const char* from = root["from"]; 
+  Serial.print("From: ");
+  Serial.print(from); 
+  Serial.println("");
+  
+  const char* to = root["to"]; 
+  Serial.print("To: ");
+  Serial.print(to); 
+  Serial.println("");
+  
+  const char* Method = root["method"]; 
+  Serial.print("Method: ");
+  Serial.print(Method); 
+  Serial.println("");
+  
+  const char* command = root["command"];
+  Serial.print("Command: ");
+  Serial.print(command);  
+  Serial.println("");
+
+  int attribute = root["attribute"];
+  Serial.print("Attribute: ");
+  Serial.print(attribute);  
+  Serial.println(""); 
+
+  processCommandFromServer((char *)command, attribute);
+    
+}
+
+void callback(char* topic, byte* payload, unsigned int length) {
+  char messageBuffer[length + 1];
+  Serial.println("Payload length: ");
+  Serial.print(length);
+  strncpy (messageBuffer, (char*)payload, length);
+  messageBuffer[length] = '\0';
+  
+  Serial.print("Message arrived [");
+  Serial.print(topic);
+  Serial.print("] ");
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)payload[i]);
+  }
+  Serial.println();
+  client.publish("toServer", "Received command from server");
+      // ... and resubscribe
+  client.subscribe("fromServer");
+  Serial.println("Message buffer:");
+  Serial.println(messageBuffer);
+  extractAndProcessDataFromServer(messageBuffer);
+
 }
   
 // Main functions
@@ -524,10 +403,9 @@ void setup() {
   pinMode(RELAY_IO, OUTPUT);
   InitWiFi();
   
-  client.setServer( thingsboardServer, 1883 );
-  client.setCallback(on_message);
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
 
-  callbackFlag.attach_ms(2000, resetCallBackFuncFlag);
 }
 
 void loop() {
