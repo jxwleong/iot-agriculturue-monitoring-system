@@ -18,7 +18,7 @@ Access token - 9XsTWu7cnzt2Ntso9X67
 Device ID - f5787a50-e587-11e9-b47f-e36735dd4e11
 
 Soil Sensor 2
---------------------------------
+-------------------------------- 
 Access token - uUca2JippVzlqxuQ3V8B
 Device ID - 21fe07c0-e588-11e9-bc72-e9d230655396
 
