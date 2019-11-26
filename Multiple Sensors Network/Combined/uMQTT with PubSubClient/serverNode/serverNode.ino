@@ -113,7 +113,7 @@ static int DELAY_FOR_CALLBACK = 0;    // in ms
 // if use object create (json string correct before sent)
 char  *jsonSetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"setRelayStatus\" ,\"attribute\":%d}";
 char  *jsonGetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"getRelayStatus\"}";
-
+char  *jsonSentSensorDataToRelay = "{\"from\":\"%s\",\"to\":\"Relay Node\",\"method\":\"sendSensorReadingsFromServer\",\"soilMoisture\":%i}";
 char jsonMessageForRelay[MAX_JSON_STRING_LENGTH];
 /*
  * @desc: bypass the characters of str based on length
@@ -163,6 +163,40 @@ SensorParameter getSensorParameterFromClient(const char *from){
   return sensorParameter;
     
 }
+
+/*
+ * Custom broker class with overwritten callback functions
+ */
+class myMQTTBroker: public uMQTTBroker
+{
+public:
+    virtual bool onConnect(IPAddress addr, uint16_t client_count) {
+      Serial.println(addr.toString()+" connected");
+      return true;
+    }
+    
+    virtual bool onAuth(String username, String password) {
+      Serial.println("Username/Password: "+username+"/"+password);
+      return true;
+    }
+    
+    virtual void onData(String topic, const char *data, uint32_t length) {
+      char data_str[length+1];
+      os_memcpy(data_str, data, length);
+      data_str[length] = '\0';
+
+      Serial.println("\n========================================");
+      Serial.println("      Received message from clients.      ");
+      Serial.println(  "========================================");
+
+      Serial.println("received topic '"+topic+"' with data '"+(String)data_str+"'");
+      extractAndProcessDataFromClient(data_str);
+    }
+};
+
+myMQTTBroker myBroker;
+
+
 /*
  * @desc: Parse JSON format string and extract necessary info
  * @param: String in JSON format
@@ -172,7 +206,6 @@ void extractAndProcessDataFromClient(char *jsonStr){
   // Ref:https://github.com/bblanchon/ArduinoJson/blob/5.x/examples/JsonParserExample/JsonParserExample.ino#L28
   char jsonBuff[MAX_JSON_STRING_LENGTH];
   strncpy (jsonBuff, jsonStr, MAX_JSON_STRING_LENGTH+1);
-  
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
 
@@ -211,6 +244,12 @@ void extractAndProcessDataFromClient(char *jsonStr){
   Serial.println("Uploading sensor data to ThingsBoard...");
   uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
   uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
+  
+  memset(&jsonMessageForRelay[0], 0, sizeof(jsonMessageForRelay));  // Clear the array
+  sprintf(jsonMessageForRelay, jsonSentSensorDataToRelay, from, soilMoisture);
+  Serial.println("Json Message to Relay: ");
+  Serial.print(jsonMessageForRelay);
+  myBroker.publish("toRelay", jsonMessageForRelay);
   }
   else{
   int attribute = root["attribute"]; 
@@ -222,43 +261,14 @@ void extractAndProcessDataFromClient(char *jsonStr){
     relayState[0] = true;
   else
     relayState[0] = false;
-    
+
+    const char *topic = "v1/devices/me/rpc/request/+";
+    String responseTopic = String(topic);
+    responseTopic.replace("request", "response");
+    client.publish(responseTopic.c_str(), get_relay_status().c_str());
     }
   }
   
-/*
- * Custom broker class with overwritten callback functions
- */
-class myMQTTBroker: public uMQTTBroker
-{
-public:
-    virtual bool onConnect(IPAddress addr, uint16_t client_count) {
-      Serial.println(addr.toString()+" connected");
-      return true;
-    }
-    
-    virtual bool onAuth(String username, String password) {
-      Serial.println("Username/Password: "+username+"/"+password);
-      return true;
-    }
-    
-    virtual void onData(String topic, const char *data, uint32_t length) {
-      char data_str[length+1];
-      os_memcpy(data_str, data, length);
-      data_str[length] = '\0';
-
-      Serial.println("\n========================================");
-      Serial.println("      Received message from clients.      ");
-      Serial.println(  "========================================");
-
-      Serial.println("received topic '"+topic+"' with data '"+(String)data_str+"'");
-      extractAndProcessDataFromClient(data_str);
-    }
-};
-
-myMQTTBroker myBroker;
-
-
 /*
  * @desc: Upload sensor reading to ThingsBoard and display on widget
  * @param: sensor reading, parameter created on ThingsBoard
@@ -343,6 +353,8 @@ ControlOperation getCommandOperation(char *command){
  *         Subsribe topic, Full command request from rpc remote shell.
  */
 void processRequestFromThingsBoard(String methodName, JsonObject& data, const char* topic, char *fullRpcMessage){
+  Serial.println("Topic: ");
+  Serial.print(topic);
   if (methodName.equals("getRelayStatus")) {
     // Reply with GPIO status
     myBroker.publish("toRelay", jsonGetRelayStatus);
@@ -355,6 +367,7 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     // Update GPIO status and reply
     Serial.println("enabled: ");
     boolean relayStatus = data["params"]["enabled"];
+    memset(&jsonMessageForRelay[0], 0, sizeof(jsonMessageForRelay));  // Clear the array
     sprintf(jsonMessageForRelay, jsonSetRelayStatus, relayStatus);
     Serial.print(relayStatus);
     Serial.println(jsonMessageForRelay);

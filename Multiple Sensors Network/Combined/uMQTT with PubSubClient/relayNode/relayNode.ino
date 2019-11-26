@@ -105,6 +105,10 @@ static boolean callbackCalled = false;
 
 static int DELAY_FOR_CALLBACK = 0;    // in ms
 
+// Boundary of soil moisture for optimal growth
+#define MAX_SOIL_MOISTURE   30
+#define MIN_SOIL_MOISTURE   10
+
 /*******************Timer functions****************/
 /*
  * @desc: Calcuate the number of ticks to write into timer
@@ -309,6 +313,14 @@ char *createJsonStringToUpdateRelayStatus(int attribute){
   object.printTo((char*)jsonChar, object.measureLength() + 1);
   return (char *)jsonChar;
 }
+
+int isSoilMoistureOptimum(int soilMoisture){
+       if(soilMoisture < MAX_SOIL_MOISTURE &&\
+          soilMoisture > MIN_SOIL_MOISTURE)
+        return 1;
+       else
+        return 0; 
+  }  
   
 void processCommandFromServer(char *command, int attribute){
   if(strstr(command, "setRelayStatus")){
@@ -326,9 +338,52 @@ void processCommandFromServer(char *command, int attribute){
     //// resubscribe
     client.subscribe("toRelay");
     }
+  else if(strstr(command, "soilMoistureReadingFromSensors")){
+      if(!isSoilMoistureOptimum(attribute)) // Soil Moisture is not ideal
+         setRelayStatus(RELAY_PIN, attribute);
+          char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
+          client.publish("toServer", replyToServer);
+          // resubscribe
+          client.subscribe("toRelay");
+    }
   
 }
 
+void operatedBasedOnMethod(JsonObject& root, const char *Method){
+
+  if(strstr(Method, "relayCommand")){  
+    Serial.println("\nDecoded JSON received from server:");
+    const char* from = root["from"]; 
+    Serial.print("From: ");
+    Serial.print(from); 
+    Serial.println("");
+  
+    const char* to = root["to"]; 
+    Serial.print("To: ");
+    Serial.print(to); 
+    Serial.println("");
+    
+    const char* command = root["command"];
+    Serial.print("Command: ");
+    Serial.print(command);  
+    Serial.println("");
+
+    int attribute = root["attribute"];
+    Serial.print("Attribute: ");
+    Serial.print(attribute);  
+    Serial.println(""); 
+
+    processCommandFromServer((char *)command, attribute);
+  }
+  else if(strstr(Method, "sendSensorReadingsFromServer")){
+    int soilMoisture = root["soilMoisture"];
+    Serial.println("Soil Moisture: ");
+    Serial.print(soilMoisture);
+
+    processCommandFromServer("soilMoistureReadingFromSensors", soilMoisture);
+    }
+}
+  
 void extractAndProcessDataFromServer(char *jsonStr){
   // need to use char array to parse else the duplication will occur and jsonBuffer will be full.
   // Ref:https://github.com/bblanchon/ArduinoJson/blob/5.x/examples/JsonParserExample/JsonParserExample.ino#L28
@@ -342,34 +397,14 @@ void extractAndProcessDataFromServer(char *jsonStr){
   Serial.println("      Received message from server.      ");
   Serial.println(  "========================================");  
 
-  // Decode data from jsonString
-  Serial.println("\nDecoded JSON received from server:");
-  const char* from = root["from"]; 
-  Serial.print("From: ");
-  Serial.print(from); 
-  Serial.println("");
-  
-  const char* to = root["to"]; 
-  Serial.print("To: ");
-  Serial.print(to); 
-  Serial.println("");
-  
+  // Decode method from jsonString
   const char* Method = root["method"]; 
   Serial.print("Method: ");
   Serial.print(Method); 
   Serial.println("");
-  
-  const char* command = root["command"];
-  Serial.print("Command: ");
-  Serial.print(command);  
-  Serial.println("");
 
-  int attribute = root["attribute"];
-  Serial.print("Attribute: ");
-  Serial.print(attribute);  
-  Serial.println(""); 
+  operatedBasedOnMethod(root, Method);
 
-  processCommandFromServer((char *)command, attribute);
     
 }
 

@@ -55,6 +55,7 @@ typedef enum{
   TURN_OFF_RELAY,
   SLEEP,
   INVALID,
+  SAMPLING
   }ControlOperation;
 
 // Definition for sensors
@@ -96,6 +97,25 @@ Ticker sendDataToServer;
 int interruptTimerInMilliS = 5000;
 
 #define DEFAULT_DATA_SAMPLING_RATE_MS  20000
+
+
+
+// Structure for time unit
+typedef enum{
+    s = 1,
+    ms = 1000,
+    us = 1000000,
+    invalid,
+}TimeUnit;
+
+// Structure for rpc
+typedef struct RpcType RpcType;
+struct RpcType{
+    long rpcVal;
+    TimeUnit unit;
+};
+
+TimeUnit unit = ms;
 
 /******************Sensor functions***************/  
 /*
@@ -235,11 +255,15 @@ void reconnect() {
  *        Reset the sleeping status to awake
  */  
 void ICACHE_RAM_ATTR onTimerISR(){
-    if(sleepStatus == SLEEPING){
-    sleepStatus = AWAKE;
-    Serial.println("I'm awake!");
-    }
-    timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); // write 0.5s ticks
+  SensorData sensorData;
+  Serial.println("\n========================================");
+  Serial.println("  ISR to collect and send sensor data.  ");
+  Serial.println("========================================");
+  Serial.println("Collecting sensor data now...");
+  sensorData = getSensorData();
+  sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
+  
+  timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); 
 }
 
 /*
@@ -254,7 +278,7 @@ ControlOperation getCommandOperation(char *command){
     else if(strstr (command, "sleep"))
       return SLEEP;
     else 
-      return INVALID;      
+      return SAMPLING;      
   }
   
 /******************Power functios*****************/
@@ -322,7 +346,16 @@ void rpcCommandOperation(char *command){
                      sleepStatus = SLEEPING;
                      Serial.println("I'm going to sleep...");
                      break;           // Choose power mode
-      default: Serial.println("Invalid operation chosen!");
+      case SAMPLING:    RpcType dataReceived = getRpcValInInt(command);  
+                        Serial.println("Rpc val: ");
+                        Serial.print(dataReceived.rpcVal);
+                        Serial.println("Rpc unit: ");
+                        Serial.print(dataReceived.unit);
+                        interruptTimerInMilliS =  dataReceived.rpcVal;
+                        unit = dataReceived.unit;
+                        break;
+                
+     // default: Serial.println("Invalid operation chosen!");
     }
   }
 }
@@ -347,6 +380,47 @@ char *getRpcCommandInStr(char *command, char *subStr){
     return NULL;
 }
 
+void skipWhiteSpaces(char **str){
+    while(**str == ' ')
+        ++*str;
+}
+
+/*
+ * @desc: get the time unit from rpc command
+ * @param: string of rpc command
+ */
+TimeUnit getTimeUnitInStr(char *str){
+  // example of json received from rpc remote shell (string)
+  // {"method":"sendCommand","params":{"command":"1 us"}}
+  //                                         str---^
+    skipWhiteSpaces(&str);
+    if(*str == 's'){
+        return s;
+    }
+    else if(*str == 'm'){
+        return ms;
+    }    
+    else if(*str == 'u'){
+        return us;
+    }    
+    else
+        return invalid;
+}
+/*
+ * @desc: convert rpc message from string to integer 
+ * @param: rpc message from ThingsBoard
+ * @retval: int value of rpc message
+ */
+RpcType getRpcValInInt(char *str){
+  char *number;
+  char *unit;
+  long rpcVal = 0;
+  RpcType ans;
+  
+  ans.rpcVal = strtol(str, &unit, 10);
+  ans.unit = getTimeUnitInStr(unit);
+  return ans;
+  }
 
 void extractAndProcessDataFromServer(char *jsonStr){
   // need to use char array to parse else the duplication will occur and jsonBuffer will be full.
@@ -442,7 +516,7 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
-  sendDataToServer.attach_ms(DEFAULT_DATA_SAMPLING_RATE_MS,  ISR_FUNC);
+  //sendDataToServer.attach_ms(DEFAULT_DATA_SAMPLING_RATE_MS,  ISR_FUNC);
 
 }
 
