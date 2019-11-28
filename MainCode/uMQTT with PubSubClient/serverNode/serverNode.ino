@@ -1,14 +1,16 @@
 /****************************************************************
- * Original Author  : Uteh Str (https://www.youtube.com/watch?v=O-aOnZViBzs&t=317s)
  * Author : Jason Leong Xie Wei
  * Conctact : jason9829@live.com
  * Title : Server node
- * Hardware : LoLin NodeMCU V3 ESP8266
+ * Hardware : Wemos D1 R2
  * Library Version:
  *  ArduinoJson : Version 5.13.5
  *  ThingsBoard : Version 0.2.0
  *  PubSubClient : Version 2.7.0
+ *  uMQTTBroker : Latest Version from Github(https://github.com/martin-ger/uMQTTBroker)
+                  27 Nov 2019
  ****************************************************************/
+//-----------------------------LIBRARY---------------------------------
 #include <ArduinoJson.h>
 #include <ThingsBoard.h>
 #include <ESP8266WiFi.h>
@@ -18,59 +20,76 @@
 #include <MQTT.h>
 #include <uMQTTBroker.h>
 
+
+//----------------------------DEFINITION--------------------------------
 // Definition for WiFi
-#define WIFI_AP "YOUR_WIFI_SSID_HERE"         // WiFi SSID
+#define WIFI_AP "YOUR_WIFI_SSID_HERE"                   // WiFi SSID
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
-
-String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
-
-char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
-
-// Global variable
-int status = WL_IDLE_STATUS;
-
-WiFiClient wifiClient;              // Wifi clients created to connect to internet and 
-PubSubClient client(wifiClient);    // ThingsBoard
-ThingsBoard tb(wifiClient);
-
-
-#define MAX_JSON_STRING_LENGTH  200
-
-int i = 0;
-  
 // Definition for timer
-#define CPU_FREQ_80M    80000000
-#define CPU_FREQ_160M   160000000
-#define TIM_FREQ_DIV1   1
-#define TIM_FREQ_DIV16   16
+#define CPU_FREQ_80M      80000000
+#define CPU_FREQ_160M     160000000
+#define TIM_FREQ_DIV1     1
+#define TIM_FREQ_DIV16    16
 #define TIM_FREQ_DIV256   256
-
-int interruptTimerInMilliS = 5000;
-
-Ticker callbackFlag;
-
-// Assume relay are off 
-boolean relayState[] = {false};
 
 // GPIO definition
 #define RELAY_IO    D3
 #define RELAY_PIN   1    // Pin declared at Thingsboard Widget
 
-// Definition for power saving functions
-typedef enum{
-  NORMAL_MODE,  // Use power for all neccessary peripehrals
-  MODEM_SLEEP,  // Turn off WiFi
-  LIGHT_SLEEP,  // Turn off System Clock
-  DEEP_SLEEP,   // Everything off except RTC
-  }PowerMode;
-  
-typedef enum{
-  AWAKE,
-  SLEEPING,
-  }SleepStatus;  
-  
+// MACROs for callback function
+#define isCallbackFuncCalled      callbackCalled
+#define setCallbackFuncFlag       callbackCalled = true
+#define resetCallbackFuncFlag     callbackCalled = false  
+
+// Definition for JSON
+#define MAX_JSON_STRING_LENGTH  200
+
+
+//-------------------------GLOBAL VARIABLE------------------------------
+// WiFi variable
+int status = WL_IDLE_STATUS;
+WiFiClient wifiClient;              // Wifi clients created to connect to internet and 
+PubSubClient client(wifiClient);    // ThingsBoard
+
+// ThingsBoard variable
+ThingsBoard tb(wifiClient);
+String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
+
+// Timer variable
+int interruptTimerInMilliS = 5000;
+Ticker callbackFlag;
+
+// Json variable
+// Use pre-defined char because when message sent the json string is corrupted 
+// if use object create (json string correct before sent)
+char  *jsonSetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"setRelayStatus\" ,\"attribute\":%d}";
+char  *jsonGetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"getRelayStatus\"}";
+char  *jsonSentSensorDataToRelay = "{\"from\":\"%s\",\"to\":\"Relay Node\",\"method\":\"sendSensorReadingsFromServer\",\"soilMoisture\":%i}";
+char jsonMessageForRelay[MAX_JSON_STRING_LENGTH];
+
+int i = 0;
+
+// GPIO variable
+// Assume relay are off 
+boolean relayState[] = {false};
+
+// Callback variablee
+// Variable to makesure callback function for RPC only run
+// once because callback function called multiple times
+// (Due to "Device is offline")
+static boolean callbackCalled = false;
+static int DELAY_FOR_CALLBACK = 0;    // in ms
+
+// RPC variable
+char *command;  // Command from rpc remote shell
+
+// Sleep variable
 volatile SleepStatus sleepStatus = AWAKE;
+
+
+//--------------------------DATA STRUCTURE------------------------------
 // Definition for RPC functions
 typedef enum{
   TURN_ON_RELAY,
@@ -79,8 +98,6 @@ typedef enum{
   INVALID,
   }ControlOperation;
   
-char *command;  // Command from rpc remote shell
-
 // MQTT definition and function
 typedef struct SensorInfo SensorInfo;
 struct SensorInfo{
@@ -97,24 +114,8 @@ struct SensorParameter{
   };
 
 
-// Variable to makesure callback function for RPC only run
-// once because callback function called multiple times
-// (Due to "Device is offline")
-static boolean callbackCalled = false;
-
-// MACROs for callback function
-#define isCallbackFuncCalled      callbackCalled
-#define setCallbackFuncFlag       callbackCalled = true
-#define resetCallbackFuncFlag     callbackCalled = false  
-
-static int DELAY_FOR_CALLBACK = 0;    // in ms
-
-// Use pre-defined char because when message sent the json string is corrupted 
-// if use object create (json string correct before sent)
-char  *jsonSetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"setRelayStatus\" ,\"attribute\":%d}";
-char  *jsonGetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"getRelayStatus\"}";
-char  *jsonSentSensorDataToRelay = "{\"from\":\"%s\",\"to\":\"Relay Node\",\"method\":\"sendSensorReadingsFromServer\",\"soilMoisture\":%i}";
-char jsonMessageForRelay[MAX_JSON_STRING_LENGTH];
+//-----------------------------FUNCTIONS--------------------------------
+/******************String functions****************/
 /*
  * @desc: bypass the characters of str based on length
  * @param: str to be bypass, the length of bypass
@@ -134,6 +135,10 @@ void skipWhiteSpaces(char **str){
     while(**str == ' ')
         ++*str;
 }
+
+//=============END OF STRING FUNCTION===============
+
+/******************Sensor functions****************/
 /*
  * @desc: Get the sensor node number from MQTT client message
  * @param: Message from client, parameter (keyboard) to search
@@ -164,6 +169,9 @@ SensorParameter getSensorParameterFromClient(const char *from){
     
 }
 
+//=============END OF SENSOR FUNCTION===============
+
+/*******************MQTT functions*****************/
 /*
  * Custom broker class with overwritten callback functions
  */
@@ -196,7 +204,7 @@ public:
 
 myMQTTBroker myBroker;
 
-
+ 
 /*
  * @desc: Parse JSON format string and extract necessary info
  * @param: String in JSON format
@@ -270,16 +278,131 @@ void extractAndProcessDataFromClient(char *jsonStr){
   }
   
 /*
+ * @desc: Call functions to operate based on request from ThingsBoard Server
+ * @param: Method to process (SendCommand, setRelayPin,...), Data (json object)
+ *         Subsribe topic, Full command request from rpc remote shell.
+ */
+void processRequestFromThingsBoard(String methodName, JsonObject& data, const char* topic, char *fullRpcMessage){
+  Serial.println("Topic: ");
+  Serial.print(topic);
+  if (methodName.equals("getRelayStatus")) {
+    // Reply with GPIO status
+    myBroker.publish("toRelay", jsonGetRelayStatus);
+    String responseTopic = String(topic);
+    responseTopic.replace("request", "response");
+    client.publish(responseTopic.c_str(), get_relay_status().c_str());
+    DELAY_FOR_CALLBACK = 0;
+  } 
+  else if (methodName.equals("setRelayStatus")) {
+    // Update GPIO status and reply
+    Serial.println("enabled: ");
+    boolean relayStatus = data["params"]["enabled"];
+    memset(&jsonMessageForRelay[0], 0, sizeof(jsonMessageForRelay));  // Clear the array
+    sprintf(jsonMessageForRelay, jsonSetRelayStatus, relayStatus);
+    Serial.print(relayStatus);
+    Serial.println(jsonMessageForRelay);
+    myBroker.publish("toRelay", jsonMessageForRelay);
+    set_relay_status(data["params"]["pin"], data["params"]["enabled"]);
+    String responseTopic = String(topic);
+    responseTopic.replace("request", "response");     
+    client.publish(responseTopic.c_str(), get_relay_status().c_str());
+    client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+    DELAY_FOR_CALLBACK = 0;
+  }
+  else if(methodName.equals("sendCommand")){
+    myBroker.publish("fromServer", fullRpcMessage);
+    Serial.println(fullRpcMessage);
+    command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
+    Serial.println(command);
+    //rpcCommandOperation(command);                  // Operate based on command
+    DELAY_FOR_CALLBACK = 5000;
+  }
+}
+
+/*
+ * @desc: The callback for when a PUBLISH message is received from the server.
+ */
+void on_message(const char* topic, byte* payload, unsigned int length) {
+
+  if(!isCallbackFuncCalled){
+    Serial.println("\n========================================");
+    Serial.println("      Received message from server.      ");
+    Serial.println(  "========================================");
+
+    char json[length + 1];
+    char fullRpcMessage[length + 1];
+    long dataInInt;
+    strncpy (json, (char*)payload, length);
+    json[length] = '\0';
+
+    strncpy (fullRpcMessage, json, length); // Another copy of json because
+    fullRpcMessage[length] = '\0';          // json will be decode later to find
+                                          // request method
+    Serial.print("Topic: ");
+    Serial.println(topic);
+    Serial.print("json: ");
+    Serial.println(json);
+
+    // Decode JSON request
+    StaticJsonBuffer<200> jsonBuffer;
+    JsonObject& data = jsonBuffer.parseObject((char*)json);
+
+    if (!data.success())
+    {
+      Serial.println("parseObject() failed");
+      return;
+    }
+
+    // Check request method
+    String methodName = String((const char*)data["method"]);
+    Serial.println(methodName);
+    processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
+    setCallbackFuncFlag;
+  }
+}
+  
+//==============END OF MQTT FUNCTION================
+
+/***************ThingsBoard functions**************/  
+/*
  * @desc: Upload sensor reading to ThingsBoard and display on widget
  * @param: sensor reading, parameter created on ThingsBoard
  */
 void uploadReadingsToThingsBoard(float sensorData, char *deviceParameter){
   tb.sendTelemetryFloat(deviceParameter, sensorData);   // Upload data to ThingsBoard
   }  
+
+/*
+ * @desc: Get the relay pin status
+ */ 
+String get_relay_status() {
+  // Prepare gpio JSON payload string
+  StaticJsonBuffer<200> jsonBuffer;
+  JsonObject& data = jsonBuffer.createObject();
+  data[String(RELAY_PIN)] = relayState[0] ? true : false;
+  char payload[256];
+  data.printTo(payload, sizeof(payload));
+  String strPayload = String(payload);
+  Serial.print("Get relay pin status: ");
+  Serial.println(strPayload);
+  return strPayload;
+}
+
+/*
+ * @desc: Set the relay pin status
+ * @param: Relay pin, data to write (HIGH/ LOW)
+ */ 
+void set_relay_status(int pin, boolean enabled) {
+  if (pin == RELAY_PIN) {
+    // Output Relay state
+    digitalWrite(RELAY_IO, enabled ? HIGH : LOW);
+    // Update Relay state
+    relayState[0] = enabled;
+  }
+}
   
-
-/********************RPC functions*****************/
-
+//===========END OF THINGSBOARD FUNCTION============  
+  
 /*******************Timer functions****************/
 /*
  * @desc: Calcuate the number of ticks to write into timer
@@ -295,6 +418,8 @@ uint32_t getTimerTicks(uint32_t freq, int freqDivider, int milliSeconds){
   // get the value in milliSeconds then div by period
   return ticks;
   }
+
+//=============END OF TIMER FUNCTION================
 
 /********************RPC functions*****************/
 /*
@@ -345,146 +470,9 @@ ControlOperation getCommandOperation(char *command){
     else 
       return INVALID;      
   }
-
-
-/*
- * @desc: Call functions to operate based on request from ThingsBoard Server
- * @param: Method to process (SendCommand, setRelayPin,...), Data (json object)
- *         Subsribe topic, Full command request from rpc remote shell.
- */
-void processRequestFromThingsBoard(String methodName, JsonObject& data, const char* topic, char *fullRpcMessage){
-  Serial.println("Topic: ");
-  Serial.print(topic);
-  if (methodName.equals("getRelayStatus")) {
-    // Reply with GPIO status
-    myBroker.publish("toRelay", jsonGetRelayStatus);
-    String responseTopic = String(topic);
-    responseTopic.replace("request", "response");
-    client.publish(responseTopic.c_str(), get_relay_status().c_str());
-    DELAY_FOR_CALLBACK = 0;
-  } 
-  else if (methodName.equals("setRelayStatus")) {
-    // Update GPIO status and reply
-    Serial.println("enabled: ");
-    boolean relayStatus = data["params"]["enabled"];
-    memset(&jsonMessageForRelay[0], 0, sizeof(jsonMessageForRelay));  // Clear the array
-    sprintf(jsonMessageForRelay, jsonSetRelayStatus, relayStatus);
-    Serial.print(relayStatus);
-    Serial.println(jsonMessageForRelay);
-    myBroker.publish("toRelay", jsonMessageForRelay);
-    set_relay_status(data["params"]["pin"], data["params"]["enabled"]);
-    String responseTopic = String(topic);
-    responseTopic.replace("request", "response");     
-    client.publish(responseTopic.c_str(), get_relay_status().c_str());
-    client.publish("v1/devices/me/attributes", get_relay_status().c_str());
-    DELAY_FOR_CALLBACK = 0;
-  }
-  else if(methodName.equals("sendCommand")){
-    myBroker.publish("fromServer", fullRpcMessage);
-    Serial.println(fullRpcMessage);
-    command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
-    Serial.println(command);
-    //rpcCommandOperation(command);                  // Operate based on command
-    DELAY_FOR_CALLBACK = 5000;
-  }
-}
-/*
- * @desc: The callback for when a PUBLISH message is received from the server.
- */
-void on_message(const char* topic, byte* payload, unsigned int length) {
-
-  if(!isCallbackFuncCalled){
-    Serial.println("\n========================================");
-    Serial.println("      Received message from server.      ");
-    Serial.println(  "========================================");
-
-    char json[length + 1];
-    char fullRpcMessage[length + 1];
-    long dataInInt;
-    strncpy (json, (char*)payload, length);
-    json[length] = '\0';
-
-    strncpy (fullRpcMessage, json, length); // Another copy of json because
-    fullRpcMessage[length] = '\0';          // json will be decode later to find
-                                          // request method
-    Serial.print("Topic: ");
-    Serial.println(topic);
-    Serial.print("json: ");
-    Serial.println(json);
-
-    // Decode JSON request
-    StaticJsonBuffer<200> jsonBuffer;
-    JsonObject& data = jsonBuffer.parseObject((char*)json);
-
-    if (!data.success())
-    {
-      Serial.println("parseObject() failed");
-      return;
-    }
-
-    // Check request method
-    String methodName = String((const char*)data["method"]);
-    Serial.println(methodName);
-    processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
-    setCallbackFuncFlag;
-  }
-}
-
-/*******************Relay functions****************/  
-/*
- * @desc: Get the relay pin status
- */ 
-String get_relay_status() {
-  // Prepare gpio JSON payload string
-  StaticJsonBuffer<200> jsonBuffer;
-  JsonObject& data = jsonBuffer.createObject();
-  data[String(RELAY_PIN)] = relayState[0] ? true : false;
-  char payload[256];
-  data.printTo(payload, sizeof(payload));
-  String strPayload = String(payload);
-  Serial.print("Get relay pin status: ");
-  Serial.println(strPayload);
-  return strPayload;
-}
-
-/*
- * @desc: Set the relay pin status
- * @param: Relay pin, data to write (HIGH/ LOW)
- */ 
-void set_relay_status(int pin, boolean enabled) {
-  if (pin == RELAY_PIN) {
-    // Output Relay state
-    digitalWrite(RELAY_IO, enabled ? HIGH : LOW);
-    // Update Relay state
-    relayState[0] = enabled;
-  }
-}
-
-/******************Power functios*****************/
-/**
- * @desc: Switch between power modes
- * @param: Desired power modes
- */
-void switchPowerMode(PowerMode powerMode){
-    switch(powerMode){
-        case NORMAL_MODE:   break;  // Do nothing
-        case MODEM_SLEEP:   turnOffWiFi(); break;  // Turn off wifi
-        case LIGHT_SLEEP:   break;  // Turn off System Clock
-        case DEEP_SLEEP:   break;   // Everything off except RTC
-        default: Serial.println("Invalid power mode chosen!");
-    } // Rewrite timer1 number of ticks so to get the correct delay
-      // Number of ticks may be decrement before this function called.  
-}  
-
-/**
- * @desc: Turn off wifi connection
- */
-void turnOffWiFi(){
-  WiFi.mode(WIFI_OFF);
-  if(WiFi.status()== WL_DISCONNECTED){
-    Serial.println("WiFi is disconnected.");
-    }
-  }
+  
+//===============END OF RPC FUNCTION================
+  
 /*******************WiFi functions****************/  
 /*
  * @desc: Connect device to WiFi
@@ -501,7 +489,6 @@ void InitWiFi() {
   Serial.println("Connected to AP");
  
 }
-
 
 /*
  * @desc: Connect device to ThingsBoard/ Reconnect to WiFi
@@ -535,6 +522,11 @@ void reconnect() {
   }
 }
 
+//==============END OF WIFI FUNCTION================
+
+/*
+ * @desc: Reset the callback function flag
+ */
 void resetCallBackFuncFlag(){
   // If the flag is set
   if(isCallbackFuncCalled){
