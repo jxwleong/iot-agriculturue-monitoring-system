@@ -49,27 +49,6 @@
 #define DHTPIN             D2       // Input Data pin for sensor
 #define DHTTYPE    DHT11            // DHT 11
 
-//-------------------------GLOBAL VARIABLE------------------------------
-// WiFi variable
-int status = WL_IDLE_STATUS;
-WiFiClient wifiClient;                   // Wifi clients created to connect to internet and 
-PubSubClient client(wifiClient);         // ThingsBoard
-
-// Timer variable
-int interruptTimerInMilliS = 5000;      // For timer1 (hardware timer)
-Ticker sendDataToServer;
-TimeUnit unit = ms;
-
-// MQTT variable
-const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
-
-// Sleep variable
-volatile SleepStatus sleepStatus = AWAKE;
-
-// Sensor variable
-SDHT dht;
-
-
 //--------------------------DATA STRUCTURE------------------------------
 // Definition for power saving functions
 typedef enum{
@@ -126,6 +105,25 @@ struct RpcType{
     TimeUnit unit;
 };
 
+//-------------------------GLOBAL VARIABLE------------------------------
+// WiFi variable
+int status = WL_IDLE_STATUS;
+WiFiClient wifiClient;                   // Wifi clients created to connect to internet and 
+PubSubClient client(wifiClient);         // ThingsBoard
+
+// Timer variable
+int interruptTimerInMilliS = 5000;      // For timer1 (hardware timer)
+Ticker sendDataToServer;
+TimeUnit unit = ms;
+
+// MQTT variable
+const char* mqtt_server = "192.168.43.140";  // Ip address of Server Node
+
+// Sleep variable
+volatile SleepStatus sleepStatus = AWAKE;
+
+// Sensor variable
+SDHT dht;
 
 //-----------------------------FUNCTIONS--------------------------------
 /******************Sensor functions***************/  

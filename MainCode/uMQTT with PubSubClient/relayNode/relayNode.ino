@@ -23,23 +23,28 @@
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
 
 // Definition for timer
-#define CPU_FREQ_80M    80000000
-#define CPU_FREQ_160M   160000000
-#define TIM_FREQ_DIV1   1
-#define TIM_FREQ_DIV16   16
+#define CPU_FREQ_80M      80000000
+#define CPU_FREQ_160M     160000000
+#define TIM_FREQ_DIV1     1
+#define TIM_FREQ_DIV16    16
 #define TIM_FREQ_DIV256   256
 
 // GPIO definition
 #define RELAY_IO    D3
 #define RELAY_PIN   1    // Pin declared at Thingsboard Widget
 
-// Boundary of soil moisture for optimal growth
-#define MAX_SOIL_MOISTURE   30
-#define MIN_SOIL_MOISTURE   10
-
 // JSON definition
 #define MAX_JSON_STRING_LENGTH  200
 
+
+//--------------------------DATA STRUCTURE------------------------------
+// Definition for RPC functions
+typedef enum{
+  TURN_ON_RELAY,
+  TURN_OFF_RELAY,
+  SLEEP,
+  INVALID,
+  }ControlOperation;
 
 //-------------------------GLOBAL VARIABLE------------------------------
 // WiFi variable
@@ -65,49 +70,7 @@ boolean relayState[] = {false};
 char *command;  // Command from rpc remote shell
 
 
-//--------------------------DATA STRUCTURE------------------------------
-// Definition for RPC functions
-typedef enum{
-  TURN_ON_RELAY,
-  TURN_OFF_RELAY,
-  SLEEP,
-  INVALID,
-  }ControlOperation;
-
-// MQTT definition and function
-typedef struct SensorInfo SensorInfo;
-struct SensorInfo{
-    int sensorNodeNumber; // Specific number for each sensor node.
-    int sensorReading;    // Sensor reading extract from sensor node publish
-                          // message.
-};
-
-// Sensor parameter used to publish telemetry to ThingsBoard
-typedef struct SensorParameter SensorParameter;
-struct SensorParameter{
-   String soilMoistureParam = "soilMoisture";       // Soil Moisture Sensor Parameter
-   String dht11Param = "temperature";               // DHT11 Sensor Parameter
-  };
-
-
-//-----------------------------FUNCTIONS--------------------------------
-/******************Sensor functions****************/
-/*
- * @desc: Compare soil moisture reading received and return
- *        respective value
- * @param: Soil Moisture from sensor nodes
- * @retval: Return correspond attributes
- */
-int isSoilMoistureOptimum(int soilMoisture){
-       if(soilMoisture < MAX_SOIL_MOISTURE &&\
-          soilMoisture > MIN_SOIL_MOISTURE)
-        return 1;
-       else
-        return 0; 
-  }  
-
-//=============END OF SENSOR FUNCTION===============
-
+//-----------------------------FUNCTIONS-------------------------------
 /*******************Timer functions****************/
 /*
  * @desc: Calcuate the number of ticks to write into timer
@@ -200,14 +163,6 @@ void processCommandFromServer(char *command, int attribute){
     // resubscribe
     client.subscribe("toRelay");
     }
-  else if(strstr(command, "soilMoistureReadingFromSensors")){
-      if(!isSoilMoistureOptimum(attribute)) // Soil Moisture is not ideal
-         setRelayStatus(RELAY_PIN, attribute);
-          char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
-          client.publish("toServer", replyToServer);
-          // resubscribe
-          client.subscribe("toRelay");
-    }
 }
 
 /*
@@ -246,6 +201,9 @@ void operatedBasedOnMethod(JsonObject& root, const char *Method){
 
     processCommandFromServer("soilMoistureReadingFromSensors", soilMoisture);
     }
+  else if(strstr(Method,"sendCommand")){
+    Serial.println("Received command from CMD!");
+  }
 }
 
 /*
@@ -352,22 +310,6 @@ ControlOperation getCommandOperation(char *command){
     else 
       return INVALID;      
   }
-
-/*
- * @desc: Get the power mode for rpc command from remote shell of ThingsBoard
- * @param: Command from rpc remote shell on ThingsBoard
- * @retval: Return the power mode
- */
-PowerMode getPowerMode(char *command){
-    if(strstr(command,"modem sleep"))
-      return MODEM_SLEEP;
-    else if(strstr(command, "light sleep"))
-      return LIGHT_SLEEP;
-    else if(strstr(command, "deep sleep")) 
-      return DEEP_SLEEP;
-    else
-      return NORMAL_MODE;   
-  }  
 
 /*
  * @desc: Call Neccessary functions for rpc command from ThingsBoard server 

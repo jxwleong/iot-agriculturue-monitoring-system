@@ -37,59 +37,21 @@
 #define RELAY_IO    D3
 #define RELAY_PIN   1    // Pin declared at Thingsboard Widget
 
-// MACROs for callback function
-#define isCallbackFuncCalled      callbackCalled
-#define setCallbackFuncFlag       callbackCalled = true
-#define resetCallbackFuncFlag     callbackCalled = false  
+// Boundary of soil moisture for optimal growth
+#define MAX_SOIL_MOISTURE   30
+#define MIN_SOIL_MOISTURE   10
 
 // Definition for JSON
 #define MAX_JSON_STRING_LENGTH  200
 
 
-//-------------------------GLOBAL VARIABLE------------------------------
-// WiFi variable
-int status = WL_IDLE_STATUS;
-WiFiClient wifiClient;              // Wifi clients created to connect to internet and 
-PubSubClient client(wifiClient);    // ThingsBoard
-
-// ThingsBoard variable
-ThingsBoard tb(wifiClient);
-String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
-char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
-
-// Timer variable
-int interruptTimerInMilliS = 5000;
-Ticker callbackFlag;
-
-// Json variable
-// Use pre-defined char because when message sent the json string is corrupted 
-// if use object create (json string correct before sent)
-char  *jsonSetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"setRelayStatus\" ,\"attribute\":%d}";
-char  *jsonGetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"getRelayStatus\"}";
-char  *jsonSentSensorDataToRelay = "{\"from\":\"%s\",\"to\":\"Relay Node\",\"method\":\"sendSensorReadingsFromServer\",\"soilMoisture\":%i}";
-char jsonMessageForRelay[MAX_JSON_STRING_LENGTH];
-
-int i = 0;
-
-// GPIO variable
-// Assume relay are off 
-boolean relayState[] = {false};
-
-// Callback variablee
-// Variable to makesure callback function for RPC only run
-// once because callback function called multiple times
-// (Due to "Device is offline")
-static boolean callbackCalled = false;
-static int DELAY_FOR_CALLBACK = 0;    // in ms
-
-// RPC variable
-char *command;  // Command from rpc remote shell
-
-// Sleep variable
-volatile SleepStatus sleepStatus = AWAKE;
-
-
 //--------------------------DATA STRUCTURE------------------------------
+// Definition for current sleep status
+typedef enum{
+  AWAKE,
+  SLEEPING,
+  }SleepStatus; 
+  
 // Definition for RPC functions
 typedef enum{
   TURN_ON_RELAY,
@@ -112,6 +74,76 @@ struct SensorParameter{
    String soilMoistureParam = "soilMoisture";       // Soil Moisture Sensor Parameter
    String dht11Param = "temperature";               // DHT11 Sensor Parameter
   };
+  
+// Soil Moisture Status
+typedef enum{
+  BELOW_AVERAGE,
+  OPTIMUM,
+  ABOVE_AVERAGE,
+  }SoilMoistureStatus;
+
+// Relay attribute
+typedef enum{
+  FALSE = 0,
+  TRUE = 1,
+  DONT_CARE = 99 // To differentiate for the first time (initialization)
+  }RelayAttribute;
+
+// Signal status
+typedef enum{
+  SIGNAL_READY,
+  SIGNAL_NOT_READY,
+  }SignalStatus;
+
+  
+//-------------------------GLOBAL VARIABLE------------------------------
+// WiFi variable
+int status = WL_IDLE_STATUS;
+WiFiClient wifiClient;              // Wifi clients created to connect to internet and 
+PubSubClient client(wifiClient);    // ThingsBoard
+
+// ThingsBoard variable
+ThingsBoard tb(wifiClient);
+String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
+char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
+
+// Timer variable
+int interruptTimerInMilliS = 5000;
+Ticker callbackFlag;
+
+// Json variable
+// Use pre-defined char because when message sent the json string is corrupted 
+// if use object create (json string correct before sent)
+char  *jsonSetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"setRelayStatus\" ,\"attribute\":%d}";
+char  *jsonGetRelayStatus  = "{\"from\":\"Server Node\",\"to\":\"Relay Node\",\"method\":\"relayCommand\",\"command\":\"getRelayStatus\"}";
+char jsonMessageForRelay[MAX_JSON_STRING_LENGTH];
+
+int i = 0;
+
+// GPIO variable
+// Assume relay are off 
+boolean relayState[] = {false};
+
+// Callback variablee
+// Variable to makesure callback function for RPC only run
+// once because callback function called multiple times
+// (Due to "Device is offline")
+static boolean callbackCalled = false;
+
+// RPC variable
+char *command;  // Command from rpc remote shell
+
+// Sleep variable
+volatile SleepStatus sleepStatus = AWAKE;
+
+// Latest request id from ThingsBoard RPC
+char *requestId;
+
+// Previous Relay attribute
+RelayAttribute previousRelayAttribute = DONT_CARE;
+
+// Signal to update relay status
+SignalStatus relayUpdateSignal = SIGNAL_NOT_READY;
 
 
 //-----------------------------FUNCTIONS--------------------------------
@@ -169,6 +201,34 @@ SensorParameter getSensorParameterFromClient(const char *from){
     
 }
 
+/*
+ * @desc: Compare soil moisture reading received and return
+ *        respective value
+ * @param: Soil Moisture from sensor nodes
+ * @retval: Return different moisture status
+ */
+SoilMoistureStatus getSoilMoistureStatus(int soilMoisture){
+       if(soilMoisture < MAX_SOIL_MOISTURE &&\
+          soilMoisture > MIN_SOIL_MOISTURE)
+        return OPTIMUM;
+       else if(soilMoisture < MIN_SOIL_MOISTURE)
+        return BELOW_AVERAGE;
+       else if(soilMoisture > MAX_SOIL_MOISTURE)
+        return ABOVE_AVERAGE;
+  }
+
+/*
+ * @desc: Determine whether relay should be turn on
+ * @param: Soil Moisture Status
+ * @retval: Return true(1) or false(0)
+ */
+RelayAttribute shouldRelayTurnOn(SoilMoistureStatus soilMoistureStatus){
+  if(soilMoistureStatus == BELOW_AVERAGE) // Not enough moisture
+    return TRUE;
+  else 
+    return FALSE;  
+  }
+
 //=============END OF SENSOR FUNCTION===============
 
 /*******************MQTT functions*****************/
@@ -217,65 +277,63 @@ void extractAndProcessDataFromClient(char *jsonStr){
   DynamicJsonBuffer jsonBuffer;
   JsonObject& root = jsonBuffer.parseObject(jsonBuff);  
 
-  // Decode data from jsonString
-  Serial.println("\nDecoded JSON received from clients:");
-  const char* from = root["from"]; 
-  Serial.print("From: ");
-  Serial.print(from); 
-  Serial.println("");
+  if(strcmp("Received command from server", jsonStr)){  // Make sure it's not acknowledgement message from clients
+    // Decode data from jsonString
+    Serial.println("\nDecoded JSON received from clients:");
+    const char* from = root["from"]; 
+    Serial.print("From: ");
+    Serial.print(from); 
+    Serial.println("");
+    
+    const char* to = root["to"]; 
+    Serial.print("To: ");
+    Serial.print(to); 
+    Serial.println("");
+    
+    const char* Method = root["method"]; 
+    String methodStr = String(Method);
+    Serial.print("Method: ");
+    Serial.print(Method); 
+    Serial.println("");
   
-  const char* to = root["to"]; 
-  Serial.print("To: ");
-  Serial.print(to); 
-  Serial.println("");
+    if(methodStr.equals("sendSensorReadings")){
+      int soilMoisture = root["soilMoisture"];
+      Serial.print("Soil Moisture: ");
+      Serial.print(soilMoisture);  
+      Serial.print(" %");
+      Serial.println("");
+      
+      float temperature = root["temperature"];
+      Serial.print("Temperature: ");
+      Serial.print(temperature); 
+      Serial.print(" C");
+      Serial.println("");
+    
+      SensorParameter sensorParameter = getSensorParameterFromClient(from);
+      Serial.println("Uploading sensor data to ThingsBoard...");
+      uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
+      uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
+      
+      //sendCommandToRelay("toRelay", shouldRelayTurnOn(getSoilMoistureStatus(soilMoisture)));
+      sendCommandToRelay("toRelay", shouldRelayTurnOn(getSoilMoistureStatus(random(0,15))));
+      }
+    else{
+      int attribute = root["attribute"]; 
+      String requestTopic = "v1/devices/me/rpc/request/" + String(requestId);
+      Serial.print("Attribute: ");
+      Serial.print(attribute);  
+      Serial.println("");
+    
+      if(attribute == 1)
+        relayState[0] = true;
+      else
+        relayState[0] = false;
   
-  const char* Method = root["method"]; 
-  String methodStr = String(Method);
-  Serial.print("Method: ");
-  Serial.print(Method); 
-  Serial.println("");
-
-  if(methodStr.equals("sendSensorReadings")){
-  int soilMoisture = root["soilMoisture"];
-  Serial.print("Soil Moisture: ");
-  Serial.print(soilMoisture);  
-  Serial.print(" %");
-  Serial.println("");
-  
-  float temperature = root["temperature"];
-  Serial.print("Temperature: ");
-  Serial.print(temperature); 
-  Serial.print(" C");
-  Serial.println("");
-  
-  SensorParameter sensorParameter = getSensorParameterFromClient(from);
-  Serial.println("Uploading sensor data to ThingsBoard...");
-  uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
-  uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
-  
-  memset(&jsonMessageForRelay[0], 0, sizeof(jsonMessageForRelay));  // Clear the array
-  sprintf(jsonMessageForRelay, jsonSentSensorDataToRelay, from, soilMoisture);
-  Serial.println("Json Message to Relay: ");
-  Serial.print(jsonMessageForRelay);
-  myBroker.publish("toRelay", jsonMessageForRelay);
+        Serial.println("Updating relay on ThingsBoard...");
+        client.publish("v1/devices/me/attributes", get_relay_status().c_str());
+     }
   }
-  else{
-  int attribute = root["attribute"]; 
-  Serial.print("Attribute: ");
-  Serial.print(attribute);  
-  Serial.println("");
-
-  if(attribute == 1)
-    relayState[0] = true;
-  else
-    relayState[0] = false;
-
-    const char *topic = "v1/devices/me/rpc/request/+";
-    String responseTopic = String(topic);
-    responseTopic.replace("request", "response");
-    client.publish(responseTopic.c_str(), get_relay_status().c_str());
-    }
-  }
+ }
   
 /*
  * @desc: Call functions to operate based on request from ThingsBoard Server
@@ -285,13 +343,15 @@ void extractAndProcessDataFromClient(char *jsonStr){
 void processRequestFromThingsBoard(String methodName, JsonObject& data, const char* topic, char *fullRpcMessage){
   Serial.println("Topic: ");
   Serial.print(topic);
+  
   if (methodName.equals("getRelayStatus")) {
     // Reply with GPIO status
     myBroker.publish("toRelay", jsonGetRelayStatus);
+    Serial.println("Relay state: ");
+    Serial.print(relayState[0]);
     String responseTopic = String(topic);
     responseTopic.replace("request", "response");
     client.publish(responseTopic.c_str(), get_relay_status().c_str());
-    DELAY_FOR_CALLBACK = 0;
   } 
   else if (methodName.equals("setRelayStatus")) {
     // Update GPIO status and reply
@@ -307,7 +367,6 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     responseTopic.replace("request", "response");     
     client.publish(responseTopic.c_str(), get_relay_status().c_str());
     client.publish("v1/devices/me/attributes", get_relay_status().c_str());
-    DELAY_FOR_CALLBACK = 0;
   }
   else if(methodName.equals("sendCommand")){
     myBroker.publish("fromServer", fullRpcMessage);
@@ -315,7 +374,6 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
     Serial.println(command);
     //rpcCommandOperation(command);                  // Operate based on command
-    DELAY_FOR_CALLBACK = 5000;
   }
 }
 
@@ -324,7 +382,6 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
  */
 void on_message(const char* topic, byte* payload, unsigned int length) {
 
-  if(!isCallbackFuncCalled){
     Serial.println("\n========================================");
     Serial.println("      Received message from server.      ");
     Serial.println(  "========================================");
@@ -357,7 +414,20 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
     String methodName = String((const char*)data["method"]);
     Serial.println(methodName);
     processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
-    setCallbackFuncFlag;
+   
+}
+
+/*
+ * @desc: Send command to relay node to turn on/off relay
+ *        based on soil moisture level
+ * @param: topic to be publish, attribute (1 or 0)       
+ */
+void sendCommandToRelay(const char *topic, RelayAttribute attribute){
+
+  if(attribute != previousRelayAttribute){
+    sprintf(jsonMessageForRelay, jsonSetRelayStatus, attribute);
+    myBroker.publish(topic, jsonMessageForRelay);
+    previousRelayAttribute = attribute;
   }
 }
   
@@ -524,18 +594,7 @@ void reconnect() {
 
 //==============END OF WIFI FUNCTION================
 
-/*
- * @desc: Reset the callback function flag
- */
-void resetCallBackFuncFlag(){
-  // If the flag is set
-  if(isCallbackFuncCalled){
-    delay(DELAY_FOR_CALLBACK);
-    Serial.println("Resetting callback function flag.");
-    resetCallbackFuncFlag;
-  }
-}
-  
+    
 // Main functions
 void setup() {
    // put your setup code here, to run once:
@@ -549,8 +608,7 @@ void setup() {
   
   client.setServer( thingsboardServer, 1883 );
   client.setCallback(on_message);
-
-  callbackFlag.attach_ms(2000, resetCallBackFuncFlag);
+  
   // Subsribe to topic
   myBroker.subscribe("fromServer");  
   myBroker.subscribe("toServer");  

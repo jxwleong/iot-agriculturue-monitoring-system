@@ -25,7 +25,6 @@
 // Definition for WiFi
 #define WIFI_AP "YOUR_WIFI_SSID_HERE"                   // WiFi SSID
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
-
 // Definition for timer
 #define CPU_FREQ_80M      80000000
 #define CPU_FREQ_160M     160000000
@@ -48,26 +47,6 @@
 #define DHT11_3V3_PIN      D1       // 3V3 pin for dht11 sensor
 #define DHTPIN             D2       // Input Data pin for sensor
 #define DHTTYPE    DHT11            // DHT 11
-
-//-------------------------GLOBAL VARIABLE------------------------------
-// WiFi variable
-int status = WL_IDLE_STATUS;
-WiFiClient wifiClient;                   // Wifi clients created to connect to internet and 
-PubSubClient client(wifiClient);         // ThingsBoard
-
-// Timer variable
-int interruptTimerInMilliS = 5000;      // For timer1 (hardware timer)
-Ticker sendDataToServer;
-TimeUnit unit = ms;
-
-// MQTT variable
-const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
-
-// Sleep variable
-volatile SleepStatus sleepStatus = AWAKE;
-
-// Sensor variable
-SDHT dht;
 
 
 //--------------------------DATA STRUCTURE------------------------------
@@ -125,6 +104,27 @@ struct RpcType{
     long rpcVal;
     TimeUnit unit;
 };
+
+
+//-------------------------GLOBAL VARIABLE------------------------------
+// WiFi variable
+int status = WL_IDLE_STATUS;
+WiFiClient wifiClient;                   // Wifi clients created to connect to internet and 
+PubSubClient client(wifiClient);         // ThingsBoard
+
+// Timer variable
+int interruptTimerInMilliS = 5000;      // For timer1 (hardware timer)
+Ticker sendDataToServer;
+TimeUnit unit = ms;
+
+// MQTT variable
+const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
+
+// Sleep variable
+volatile SleepStatus sleepStatus = AWAKE;
+
+// Sensor variable
+SDHT dht;
 
 
 //-----------------------------FUNCTIONS--------------------------------
