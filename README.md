@@ -1,7 +1,11 @@
 ## Contents  
 1.  [What is this repo about?](#repoIntro)
 2.  [Requirements for this repo](#repoReq)
-3.  [What is JTAG?](#jtagIntro)
+3.  [Schematic](#schematic)
+4.  [Client node](#client)
+    1. [Sensor node](#sensor)
+    2. [Relay node](#relay)
+5.  [Server node](#server)
 8.  [References](#refer)
 
 
@@ -22,6 +26,7 @@ system to turn on the water pump.
 9. DHT11 Soil and Humidity Sensor x2
 
 **Software**
-1. Arduino IDE  
+1. [Arduino IDE](https://www.arduino.cc/en/Main/Software)  
+2. ThingsBoard (Demo version)  
 
 For the schematic of this repo, please click [here](#schematic).
