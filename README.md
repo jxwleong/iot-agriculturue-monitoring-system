@@ -11,13 +11,15 @@ system to turn on the water pump.
 
 ## <a name="repoReq"></a> Requirements for this repo  
 **Hardware**
-1. LiLon NodeMCU V3/ Wemos D1 R2 x 3
-2. 5V Relay x 1  
-3. AC Power Socket Rocker Switch 3 Pin x 1
-4. 16AWG Silicone Wire x 1m (optional for different colour)
-5. 3 pin wall socket x 1
-6. An enclosure box for relay and MCU x 1
-7. Soil Moisture sensor x 1
+1. NodeMCU x 2
+2. WeMos D1 R2 x 2
+3. 5V Relay x 1  
+4. AC Power Socket Rocker Switch 3 Pin x 1
+5. 16AWG Silicone Wire x 1m (optional for different colour)
+6. 3 pin wall socket x 1
+7. An enclosure box for relay and MCU x 1
+8. Soil Moisture sensor x 2
+9. DHT11 Soil and Humidity Sensor x2
 
 **Software**
 1. Arduino IDE  
