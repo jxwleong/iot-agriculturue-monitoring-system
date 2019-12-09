@@ -7,7 +7,8 @@
  * Hardware : Wemos D1 R2 
  *            ACS712 current sensor (Required 5V)
  * Library Version:
- *  ACS712-arduino  : Latest from (https://github.com/rkoptev/ACS712-arduino)
+ *  Modified Library: From: (https://github.com/rkoptev/ACS712-arduino)
+ *                    To: (https://github.com/jason9829/Arduino_ACS712)
  ****************************************************************/
 //-----------------------------LIBRARY---------------------------------
 #include <ACS712.h>
@@ -19,8 +20,8 @@
 
 
 //-------------------------GLOBAL VARIABLE------------------------------
-double current=0;     // variable to store current
-
+float current = 0;     // variable to store current
+float volts = 0;
 ACS712 sensor(ACS712_05B, CURRENT_SENSOR_PIN);
 
 
@@ -32,19 +33,23 @@ void setup() {
   // It is not necessary, but may positively affect the accuracy
   // Ensure that no current flows through the sensor at this moment
   // If you are not sure that the current through the sensor will not leak during calibration - comment out this method
-  Serial.println("Calibrating... Ensure that no current flows through the sensor at this moment");
+  Serial.println("\nCalibrating... Ensure that no current flows through the sensor at this moment");
   int zero = sensor.calibrate();
-  sensor.setSensitivity(0.31);
+  
+  sensor.setSensitivity(0.185);
+  sensor.setVoltageReference(3.1);
   Serial.println("Done!");
-  Serial.println("Zero point for this sensor = " + zero);
+  Serial.println(String("Zero point for this sensor = ") + zero);
 }
 
 void loop() {
+
   // put your main code here, to run repeatedly:
   current = sensor.getCurrentDC();
+  volts = sensor.getVoltage();
   // Send it to serial
-  Serial.println(String("I = ") + current + " A");
-  
+  Serial.println(String("I = ") + current + " A" + String("\tV = ") + volts + " V");
+ 
   // Wait a second before the new measurement
   delay(1000);
   
