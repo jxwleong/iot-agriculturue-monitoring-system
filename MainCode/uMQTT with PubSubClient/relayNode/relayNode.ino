@@ -36,15 +36,34 @@
 // JSON definition
 #define MAX_JSON_STRING_LENGTH  200
 
+// ESP8266 definition
+#define ESP8266_ADC_MAX_VOLT  3.3
+#define ESP8266_ADC_SCALE   1024
+
+// Pressure sensor definition
+#define MAX_PRESSURE_LIMIT    100   // Max boundary of pressure (psi)
+#define MIN_PRESSURE_LIMIT    10   // Max boundary of pressure (psi)
+
+#define PRESSURE_SENSOR_MIN_ADC_VALUE   (0.5 / ESP8266_ADC_MAX_VOLT) * ESP8266_ADC_SCALE // 0.5 V in ADC value
+#define PRESSURE_SENSOR_MAX_ADC_VALUE   (3.3 / ESP8266_ADC_MAX_VOLT) * ESP8266_ADC_SCALE // MAX V in ADC value
+
 
 //--------------------------DATA STRUCTURE------------------------------
-// Definition for RPC functions
+// Enum definition for RPC functions
 typedef enum{
   TURN_ON_RELAY,
   TURN_OFF_RELAY,
   SLEEP,
   INVALID,
   }ControlOperation;
+
+// Enum definition for RPC functions
+typedef enum{
+  BELOW_MINIMUM = 0,
+  OPTIMUM = 1,
+  ABOVE_MAXIMUM = 0,
+  }PressureStatus;
+
 
 //-------------------------GLOBAL VARIABLE------------------------------
 // WiFi variable
@@ -69,6 +88,9 @@ boolean relayState[] = {false};
 // RPC variable
 char *command;  // Command from rpc remote shell
 
+// ADC variable (Pressure sensor)
+int adcVal = 0;     // variable to store the value read
+
 
 //-----------------------------FUNCTIONS-------------------------------
 /*******************Timer functions****************/
@@ -89,7 +111,47 @@ uint32_t getTimerTicks(uint32_t freq, int freqDivider, int milliSeconds){
 
 //=============END OF TIMER FUNCTION================
 
-/*****************Relay functions****************/  
+/************Pressure Sensor functions***********/  
+/*
+ * @desc: Read pressure sensor reading 
+ * @param: Analog input (A0)
+ * @retval: Pressure in PSI
+ */ 
+ int getPressureSensorReading(int pin){
+  adcVal = analogRead(pin);  // read the input pin
+  int psi = ((adcVal-PRESSURE_SENSOR_MIN_ADC_VALUE)*150)/(PRESSURE_SENSOR_MAX_ADC_VALUE-PRESSURE_SENSOR_MIN_ADC_VALUE);
+  return psi;
+}
+
+/*
+ * @desc: Determine whether pressure is suitable for watering
+ * @param: Pressure (PSI)
+ * @retval: PressureStatus
+ */ 
+PressureStatus getPressureStatus(int psi){
+  if(psi < MIN_PRESSURE_LIMIT)
+    return BELOW_MINIMUM;    // 0 in enum
+  else if (psi > MAX_PRESSURE_LIMIT)
+    return ABOVE_MAXIMUM;     // 0 in enum
+  else 
+    return OPTIMUM;   // 1 in enum  
+} 
+  
+//========END OF PRESSURE SENSOR FUNCTION===========  
+
+/*****************Relay functions****************/
+/*  
+ * @desc: Check whether relay is suitable to turn on
+ * @param: PressureStatus, attribute (on/ off)
+ * @return: true/fase
+ */
+boolean isRelaySuitableToTurnOn(PressureStatus status, int attribute){
+  if(status == OPTIMUM && attribute == 1)
+    return true;
+  else
+    return false;  
+  } 
+  
 /*
  * @desc: Get the relay pin status
  */ 
@@ -149,12 +211,14 @@ char *createJsonStringToUpdateRelayStatus(int attribute){
  */ 
 void processCommandFromServer(char *command, int attribute){
   if(strstr(command, "setRelayStatus")){
-    Serial.println("Toggle relay pin now.");
-    setRelayStatus(RELAY_PIN, attribute);
-    char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
-    client.publish("toServer", replyToServer);
-    // resubscribe
-    client.subscribe("toRelay");
+    if(isRelaySuitableToTurnOn(getPressureStatus(getPressureSensorReading(A0)), attribute)){
+      Serial.println("Toggle relay pin now.");
+      setRelayStatus(RELAY_PIN, attribute);
+      char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
+      client.publish("toServer", replyToServer);
+      // resubscribe
+      client.subscribe("toRelay");
+    }
   }
 
   else if(strstr(command, "getRelayStatus")){

@@ -24,11 +24,17 @@ void setup() {
 
 int timeSinceLastRead = 0;
 
-void loop() {
-  if(timeSinceLastRead > 5000) {
+// Get the pressure sensor reading
+int getPressureSensorReading(int pin){
   adcVal = analogRead(analogPin);  // read the input pin
   int psi = ((adcVal-PRESSURE_SENSOR_MIN_ADC_VALUE)*150)/(PRESSURE_SENSOR_MAX_ADC_VALUE-PRESSURE_SENSOR_MIN_ADC_VALUE);
-  Serial.println(psi);          // debug value
+  return psi;
+  }
+  
+void loop() {
+  if(timeSinceLastRead > 5000) {
+
+  Serial.println(getPressureSensorReading(A0));          // debug value
   timeSinceLastRead = 0;
   }
   delay(100);
