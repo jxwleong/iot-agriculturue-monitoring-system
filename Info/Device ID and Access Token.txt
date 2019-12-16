@@ -52,5 +52,7 @@ Sensor Node 2 (NodeMCU - new)
 Access token - yZBj7JYrUTW9xsCQWu4v
 Device ID - 7bbc82b0-fa45-11e9-9cef-cf7397cc2c36
 
-
-
+Solar Node
+--------------------------------
+Access token - ol4soSBG3ZyWpfMSh6zI
+Device ID - 53221340-1fc2-11ea-b102-b79db24c38c3

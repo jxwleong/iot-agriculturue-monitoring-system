@@ -113,7 +113,7 @@ WiFiClient wifiClient;                   // Wifi clients created to connect to i
 PubSubClient client(wifiClient);         // ThingsBoard
 
 // Timer variable
-int interruptTimerInMilliS = 5000;      // For timer1 (hardware timer)
+int interruptTimerInMilliS = 2000;      // For timer1 (hardware timer)
 Ticker sendDataToServer;
 TimeUnit unit = ms;
 
