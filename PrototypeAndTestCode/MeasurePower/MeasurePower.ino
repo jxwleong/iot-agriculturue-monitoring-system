@@ -1,3 +1,11 @@
+#include <ACS712.h>
+
+#define ANALOG_IN   A0
+#define RESISTOR_1  30000.0 // ohm 
+#define RESISTOR_2  7500.0  // ohm
+
+#define REFERENCE_VOLT  3.3
+#define ADC_SCALE       1024.0
 
 // Definition of Mux
 #define S0    D6
@@ -9,6 +17,8 @@ int outS0 = 0;
 int outS1 = 0;
 int outS2 = 0;
 
+int zero = 0; // offset ADC val
+ACS712 sensor(ACS712_05B, A0);
 /*
  * @desc: Setup the I/Os for selector of mux
  */
@@ -38,30 +48,42 @@ void selectMuxChannel(int channel){
   digitalWrite(S2, outS2);
   } 
 
-  
+/*
+ * @desc: Get voltage reading from sensor
+ */
+float getVoltageDC(){
+  int adcVal = analogRead(ANALOG_IN);
+  float vout = (adcVal *REFERENCE_VOLT)/ADC_SCALE;
+  float voltage = vout/ (RESISTOR_2/ (RESISTOR_1 + RESISTOR_2));
+  return voltage;
+  }
+    
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
-  pinMode(A0, INPUT);
-
   muxInIt(S0, S1, S2);
+  pinMode(A0, INPUT);
+  selectMuxChannel(4);
+  sensor.setVoltageReference(3.3);
+  zero = sensor.calibrate();
+
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   delay(1000);
-  selectMuxChannel(0);
-  Serial.println("\nReading from Channel 0:");
-  Serial.print(analogRead(A0));
+  selectMuxChannel(6);
+  Serial.println("\nReading from Channel 6:");
+  Serial.print("Voltage: ");
+  Serial.print(getVoltageDC());
+  Serial.print(" V");
   
-  delay(1000);
-  selectMuxChannel(1);
-  Serial.println("\nReading from Channel 1:");
-  Serial.print(analogRead(A0));
-
-  delay(1000);
-  selectMuxChannel(2);
-  Serial.println("\nReading from Channel 2:");
-  Serial.print(analogRead(A0));
+  delay(3000);
+  selectMuxChannel(4);
+  Serial.println("\nReading from Channel 4:");
+  Serial.print("Current: ");
+  float val = analogRead(A0);
+  Serial.print(sensor.getCurrentDC());
+  Serial.print(" A");
 
 }
