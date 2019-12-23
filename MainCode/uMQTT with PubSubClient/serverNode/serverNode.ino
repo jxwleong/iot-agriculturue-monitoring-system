@@ -41,8 +41,15 @@
 #define MAX_SOIL_MOISTURE   30
 #define MIN_SOIL_MOISTURE   10
 
+// Boundary of temperature for optimal growth
+#define MAX_TEMPERATURE   30.00
+#define MIN_TEMPERATURE   20.00
+
 // Definition for JSON
 #define MAX_JSON_STRING_LENGTH  200
+
+// Definition for String
+#define MAX_STRING_LENGTH       128
 
 
 //--------------------------DATA STRUCTURE------------------------------
@@ -145,6 +152,10 @@ RelayAttribute previousRelayAttribute = DONT_CARE;
 // Signal to update relay status
 SignalStatus relayUpdateSignal = SIGNAL_NOT_READY;
 
+// String variable for message widget at ThingsBoard
+char msgBufferForThingsBoard[MAX_STRING_LENGTH];
+char *messageWidgetParameter = "msg";
+
 
 //-----------------------------FUNCTIONS--------------------------------
 /******************String functions****************/
@@ -166,6 +177,15 @@ void bypassCharactersInStr(char **str, int length){
 void skipWhiteSpaces(char **str){
     while(**str == ' ')
         ++*str;
+}
+
+/*
+ * @desc: Upload string message to ThingsBoard widget
+ * @param: String
+ */
+void sendStringToThingsBoard(char *parameter,char *msg)
+{
+  tb.sendTelemetryString(parameter, msg);
 }
 
 //=============END OF STRING FUNCTION===============
@@ -228,7 +248,40 @@ RelayAttribute shouldRelayTurnOn(SoilMoistureStatus soilMoistureStatus){
   else 
     return FALSE;  
   }
+  
+/*
+ * @desc: Send message to ThingsBoard widget if soil moisture
+ *        is not optimal.
+ * @param: Parameter of widget, Soil Moisture, Sensor Node (number)
+ */
+void sendMessageToThingsBoardIfSoilMoisutreNotOptimal(char *parameter, int soilMoisture, char *sensorNode){
+   if(getSoilMoistureStatus(soilMoisture) == ABOVE_AVERAGE){
+     sprintf(msgBufferForThingsBoard,"Soil Moisture was too HIGH at %s",sensorNode);
+     sendStringToThingsBoard(parameter, msgBufferForThingsBoard);
+   }
+   else if(getSoilMoistureStatus(soilMoisture) == BELOW_AVERAGE){
+     sprintf(msgBufferForThingsBoard,"Soil Moisture was too LOW at %s",sensorNode);
+     sendStringToThingsBoard(parameter, msgBufferForThingsBoard);
+   }      
+} 
 
+  
+/*
+ * @desc: Send message to ThingsBoard widget if soil moisture
+ *        is not optimal.
+ * @param: Parameter of widget, Temperature, Sensor Node (number)
+ */
+void sendMessageToThingsBoardIfTemperatureOptimal(char *parameter, float temperature, char *sensorNode){
+   if(temperature > MAX_TEMPERATURE){
+     sprintf(msgBufferForThingsBoard,"Temperature was too HIGH at %s",sensorNode);
+     sendStringToThingsBoard(parameter, msgBufferForThingsBoard);
+   }
+   else if(temperature < MIN_TEMPERATURE){
+     sprintf(msgBufferForThingsBoard,"Temperature was too LOW at %s",sensorNode);
+     sendStringToThingsBoard(parameter, msgBufferForThingsBoard);
+   }      
+} 
+ 
 //=============END OF SENSOR FUNCTION===============
 
 /*******************MQTT functions*****************/
@@ -302,15 +355,17 @@ void extractAndProcessDataFromClient(char *jsonStr){
       Serial.print(soilMoisture);  
       Serial.print(" %");
       Serial.println("");
-      
+
       float temperature = root["temperature"];
       Serial.print("Temperature: ");
       Serial.print(temperature); 
       Serial.print(" C");
       Serial.println("");
-    
+      
       SensorParameter sensorParameter = getSensorParameterFromClient(from);
       Serial.println("Uploading sensor data to ThingsBoard...");
+      //sendMessageToThingsBoardIfSoilMoisutreNotOptimal(messageWidgetParameter, soilMoisture, (char*)from);
+      //sendMessageToThingsBoardIfTemperatureOptimal(messageWidgetParameter, temperature, (char*)from);
       uploadReadingsToThingsBoard(soilMoisture,(char *)((sensorParameter.soilMoistureParam).c_str()));
       uploadReadingsToThingsBoard(temperature, (char *)((sensorParameter.dht11Param).c_str()));
       
@@ -330,6 +385,8 @@ void extractAndProcessDataFromClient(char *jsonStr){
         relayState[0] = false;
   
         Serial.println("Updating relay on ThingsBoard...");
+        sprintf(msgBufferForThingsBoard,"Updating Relay status to %i", attribute);
+        //sendStringToThingsBoard(messageWidgetParameter, msgBufferForThingsBoard);
         client.publish("v1/devices/me/attributes", get_relay_status().c_str());
      }
   }
@@ -373,7 +430,6 @@ void processRequestFromThingsBoard(String methodName, JsonObject& data, const ch
     Serial.println(fullRpcMessage);
     command = getRpcCommandInStr(fullRpcMessage, "command"); // get command from command Str
     Serial.println(command);
-    //rpcCommandOperation(command);                  // Operate based on command
   }
 }
 
@@ -409,10 +465,16 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
       Serial.println("parseObject() failed");
       return;
     }
-
     // Check request method
+    char *des;
     String methodName = String((const char*)data["method"]);
     Serial.println(methodName);
+    strcpy(des, methodName.c_str());
+    Serial.println(methodName.c_str());
+    // Send message to ThingsBoard to acknowledge the command received
+    //sprintf(msgBufferForThingsBoard,"Received command from ThingsBoard server with method %s", methodName.c_str());
+    Serial.println(msgBufferForThingsBoard);
+   // sendStringToThingsBoard(messageWidgetParameter, (char*)(message.c_str()));
     processRequestFromThingsBoard(methodName, data, topic, fullRpcMessage);
    
 }
