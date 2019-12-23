@@ -36,19 +36,44 @@ void setup() {
   Serial.println("\nCalibrating... Ensure that no current flows through the sensor at this moment");
   int zero = sensor.calibrate();
   
+  sensor.setVoltageReference(3.0);
   sensor.setSensitivity(0.185);
-  sensor.setVoltageReference(3.1);
   Serial.println("Done!");
   Serial.println(String("Zero point for this sensor = ") + zero);
+
+  // Remove the global variable from private to public
+  Serial.print("\n\n=======Specifications=========");
+  Serial.print("\nVref: ");
+  Serial.print(sensor.voltageReference);
+  Serial.print("\nAdc Scale: ");
+  Serial.print(sensor.adcScale);
+  Serial.print("\nSensitivity: ");
+  Serial.print(sensor.sensitivity,4);
+  Serial.println("\n==============================");
 }
 
 void loop() {
 
+  float voltageSupplied = 3.0;
   // put your main code here, to run repeatedly:
+  float acCurrent = sensor.getCurrentAC();
   current = sensor.getCurrentDC();
   volts = sensor.getVoltage();
+
+  float P = voltageSupplied * acCurrent;
+  
   // Send it to serial
-  Serial.println(String("I = ") + current + " A" + String("\tV = ") + volts + " V");
+  Serial.print("\nI = ");
+  Serial.print(current, 4);
+  Serial.print(" A");
+
+  Serial.print("\tV = ");
+  Serial.print(volts, 4);
+  Serial.print(" V");
+
+  Serial.print("\tP = ");
+  Serial.print(P, 4);
+  Serial.print(" Watts");
  
   // Wait a second before the new measurement
   delay(1000);

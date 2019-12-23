@@ -20,8 +20,8 @@
 
 //----------------------------DEFINITION--------------------------------
 // Definition for WiFi
-#define WIFI_AP "YOUR_WIFI_PASSWORD_HERE"                   // WiFi SSID
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
+#define WIFI_AP "HUAWEI nova 2i"                   // WiFi SSID
+#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
 
 // Definition for timer
 #define CPU_FREQ_80M      80000000
@@ -100,12 +100,12 @@ WiFiClient wifiClient;                   // Wifi clients created to connect to i
 PubSubClient client(wifiClient);         // ThingsBoard
 
 // Timer variable
-int interruptTimerInMilliS = 200;      // For timer1 (hardware timer)
+int interruptTimerInMilliS = 20000;      // For timer1 (hardware timer)
 Ticker sendDataToServer;
 TimeUnit unit = ms;
 
 // MQTT variable
-const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
+const char* mqtt_server = "192.168.43.21";  // Ip address of Server Node
 
 // Sleep variable
 volatile SleepStatus sleepStatus = AWAKE;

@@ -25,6 +25,7 @@
 // Definition for WiFi
 #define WIFI_AP "YOUR_WIFI_SSID_HERE"                   // WiFi SSID
 #define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
+
 // Definition for timer
 #define CPU_FREQ_80M      80000000
 #define CPU_FREQ_160M     160000000
