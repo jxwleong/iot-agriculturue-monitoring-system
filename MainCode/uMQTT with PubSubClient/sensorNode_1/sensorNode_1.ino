@@ -49,7 +49,6 @@
 #define DHTPIN             D2       // Input Data pin for sensor
 #define DHTTYPE    DHT11            // DHT 11
 
-
 //--------------------------DATA STRUCTURE------------------------------
 // Definition for power saving functions
 typedef enum{
@@ -178,8 +177,8 @@ SensorData getSensorData(){
 void InitSensor(){
   pinMode(DHT11_3V3_PIN, OUTPUT);
   pinMode(SOIL_MOSITURE_3V3_PIN, OUTPUT);
-  digitalWrite(DHT11_3V3_PIN, 1);    // Turn on the sensor
-  digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
+  digitalWrite(DHT11_3V3_PIN, 1);    // Cant't toggle power for dht11 (give corrupted data)
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 0); 
   }
   
 /*
@@ -493,7 +492,11 @@ void ICACHE_RAM_ATTR onTimerISR(){
   Serial.println("  ISR to collect and send sensor data.  ");
   Serial.println("========================================");
   Serial.println("Collecting sensor data now...");
+  // Toggle sensor to save power but dht11 read weird data
+  // so only turn off soil moisture
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
   sensorData = getSensorData();
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 0); 
   sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
   
   timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); 
@@ -561,6 +564,7 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
+  
   //sendDataToServer.attach_ms(DEFAULT_DATA_SAMPLING_RATE_MS,  ISR_FUNC);
 
 }

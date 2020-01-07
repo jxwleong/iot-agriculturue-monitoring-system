@@ -32,20 +32,21 @@
 // GPIO definition
 #define RELAY_IO    D3
 #define RELAY_PIN   1    // Pin declared at Thingsboard Widget
+#define PRESSURE_SENSOR_PIN   A0
 
 // JSON definition
 #define MAX_JSON_STRING_LENGTH  200
 
 // ESP8266 definition
-#define ESP8266_ADC_MAX_VOLT  3.3
+#define ESP8266_ADC_REF_VOLT  5
 #define ESP8266_ADC_SCALE   1024
 
 // Pressure sensor definition
 #define MAX_PRESSURE_LIMIT    100   // Max boundary of pressure (psi)
 #define MIN_PRESSURE_LIMIT    10   // Max boundary of pressure (psi)
 
-#define PRESSURE_SENSOR_MIN_ADC_VALUE   (0.5 / ESP8266_ADC_MAX_VOLT) * ESP8266_ADC_SCALE // 0.5 V in ADC value
-#define PRESSURE_SENSOR_MAX_ADC_VALUE   (3.3 / ESP8266_ADC_MAX_VOLT) * ESP8266_ADC_SCALE // MAX V in ADC value
+#define PRESSURE_SENSOR_MIN_ADC_VALUE   (0.5 / ESP8266_ADC_REF_VOLT) * ESP8266_ADC_SCALE // 0.5 V in ADC value
+#define PRESSURE_SENSOR_MAX_ADC_VALUE   (4.5 / ESP8266_ADC_REF_VOLT) * ESP8266_ADC_SCALE // MAX V in ADC value
 
 
 //--------------------------DATA STRUCTURE------------------------------
@@ -77,7 +78,7 @@ const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server 
 
 // Timer variable
 Ticker callbackFlag;
-int interruptTimerInMilliS = 5000;
+int interruptTimerInMilliS = 10000;
 
 int i = 0;
 
@@ -117,11 +118,11 @@ uint32_t getTimerTicks(uint32_t freq, int freqDivider, int milliSeconds){
  * @param: Analog input (A0)
  * @retval: Pressure in PSI
  */ 
- int getPressureSensorReading(int pin){
-  adcVal = analogRead(pin);  // read the input pin
+int getPressureSensorReading(int pin){
+  adcVal = analogRead(PRESSURE_SENSOR_PIN);  // read the input pin
   int psi = ((adcVal-PRESSURE_SENSOR_MIN_ADC_VALUE)*150)/(PRESSURE_SENSOR_MAX_ADC_VALUE-PRESSURE_SENSOR_MIN_ADC_VALUE);
   return psi;
-}
+  }
 
 /*
  * @desc: Determine whether pressure is suitable for watering
@@ -136,6 +137,41 @@ PressureStatus getPressureStatus(int psi){
   else 
     return OPTIMUM;   // 1 in enum  
 } 
+
+  /*
+ * @desc: Create Json Object to store data and convert it into string
+ * @param: Pressure sensor reading (psi)
+ * @retval: String that contain necessary info for server node
+ */
+char *createJsonStringForSensorReading(int psi){
+
+  StaticJsonBuffer<MAX_JSON_STRING_LENGTH> jsonBuffer;
+  JsonObject& object = jsonBuffer.createObject();
+  object["from"] = "Relay Node";
+  object["to"] = "Server Node";
+  object["method"] = "sendSensorReading";
+  object["waterPressure"] = psi;
+
+  Serial.println("\nJSON to be sent to Server:");
+  object.prettyPrintTo(Serial);
+  char jsonChar[MAX_JSON_STRING_LENGTH];
+  object.printTo((char*)jsonChar, object.measureLength() + 1);
+  return (char *)jsonChar;
+  }
+  
+/*
+ * @desc: Send data to server in json format
+ * @param: Pressure sensor reading (psi)
+ */
+void sendSensorReadingToServerNode(int psi){
+
+  char *message = createJsonStringForSensorReading(psi);
+  Serial.println("\nPublishing message:");
+  Serial.println(message);
+  client.publish("toServer", message);
+      // ... and resubscribe
+  client.subscribe("fromServer");
+  }  
   
 //========END OF PRESSURE SENSOR FUNCTION===========  
 
@@ -183,6 +219,24 @@ void setRelayStatus(int pin, boolean enabled) {
 
 //==============END OF RELAY FUNCTION===============
 
+/*************Interrupt Service Routine************/
+/*
+ * @desc: Interrupt Service Routine when desired time is achieved,
+ *        Timer1 (hardware timer)
+ */  
+void ICACHE_RAM_ATTR onTimerISR(){
+  Serial.println("\n========================================");
+  Serial.println("  ISR to collect and send sensor data.  ");
+  Serial.println("========================================");
+  Serial.println("Collecting sensor data now...");
+
+  sendSensorReadingToServerNode(getPressureSensorReading(PRESSURE_SENSOR_PIN));
+  
+  timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); 
+}
+//==================END OF ISR======================
+
+
 /*******************MQTT functions****************/ 
 /*
  * @desc: Create Json Object to store data and convert it into string
@@ -211,7 +265,7 @@ char *createJsonStringToUpdateRelayStatus(int attribute){
  */ 
 void processCommandFromServer(char *command, int attribute){
   if(strstr(command, "setRelayStatus")){
-    if(isRelaySuitableToTurnOn(getPressureStatus(getPressureSensorReading(A0)), attribute)){
+    //if(isRelaySuitableToTurnOn(getPressureStatus(getPressureSensorReading(A0)), attribute)){
       Serial.println("Toggle relay pin now.");
       setRelayStatus(RELAY_PIN, attribute);
       char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
@@ -219,7 +273,6 @@ void processCommandFromServer(char *command, int attribute){
       // resubscribe
       client.subscribe("toRelay");
     }
-  }
 
   else if(strstr(command, "getRelayStatus")){
     char *replyToServer = createJsonStringToUpdateRelayStatus((int)relayState[0]);
@@ -456,6 +509,10 @@ void setup() {
   Serial.begin(115200);
   pinMode(RELAY_IO, OUTPUT);
   InitWiFi();
+    // Initialise timer
+  timer1_attachInterrupt(onTimerISR);
+  timer1_enable(TIM_DIV256, TIM_EDGE, TIM_SINGLE);
+  timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS));
   
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);

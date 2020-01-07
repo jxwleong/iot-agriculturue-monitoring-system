@@ -105,6 +105,7 @@ struct RpcType{
     TimeUnit unit;
 };
 
+
 //-------------------------GLOBAL VARIABLE------------------------------
 // WiFi variable
 int status = WL_IDLE_STATUS;
@@ -112,18 +113,19 @@ WiFiClient wifiClient;                   // Wifi clients created to connect to i
 PubSubClient client(wifiClient);         // ThingsBoard
 
 // Timer variable
-int interruptTimerInMilliS = 5000;      // For timer1 (hardware timer)
+int interruptTimerInMilliS = 2000;      // For timer1 (hardware timer)
 Ticker sendDataToServer;
 TimeUnit unit = ms;
 
 // MQTT variable
-const char* mqtt_server = "192.168.43.140";  // Ip address of Server Node
+const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
 
 // Sleep variable
 volatile SleepStatus sleepStatus = AWAKE;
 
 // Sensor variable
 SDHT dht;
+
 
 //-----------------------------FUNCTIONS--------------------------------
 /******************Sensor functions***************/  
@@ -175,8 +177,8 @@ SensorData getSensorData(){
 void InitSensor(){
   pinMode(DHT11_3V3_PIN, OUTPUT);
   pinMode(SOIL_MOSITURE_3V3_PIN, OUTPUT);
-  digitalWrite(DHT11_3V3_PIN, 1);    // Turn on the sensor
-  digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
+  digitalWrite(DHT11_3V3_PIN, 1);    // Cant't toggle power for dht11 (give corrupted data)
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 0); 
   }
   
 /*
@@ -490,7 +492,11 @@ void ICACHE_RAM_ATTR onTimerISR(){
   Serial.println("  ISR to collect and send sensor data.  ");
   Serial.println("========================================");
   Serial.println("Collecting sensor data now...");
+  // Toggle sensor to save power but dht11 read weird data
+  // so only turn off soil moisture
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 1); 
   sensorData = getSensorData();
+  digitalWrite(SOIL_MOSITURE_3V3_PIN, 0); 
   sendSensorReadingsToServerNode(sensorData.soilMoistureData, sensorData.dht11Data.temperature);
   
   timer1_write(getTimerTicks(CPU_FREQ_80M, TIM_FREQ_DIV256, interruptTimerInMilliS)); 
@@ -520,7 +526,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "SensorNode1-";
+    String clientId = "SensorNode2-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     if (client.connect(clientId.c_str())) {
@@ -558,6 +564,7 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
+  
   //sendDataToServer.attach_ms(DEFAULT_DATA_SAMPLING_RATE_MS,  ISR_FUNC);
 
 }
