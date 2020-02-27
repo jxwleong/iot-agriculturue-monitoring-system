@@ -138,15 +138,28 @@ Since the sensor nodes are design to acquire data remotely, it is important to k
 #### Warning When Soil Moisture is not Optimal.
 ![](https://i.ibb.co/nRF9XbQ/FYP-Sensor-Alarm-Warning.png)
 
-### <a name="sensorRe"></a> Relay Node Results  
+### <a name="relayRe"></a> Relay Node Results  
 #### Relay Off When Soil Moisture is Optimal
 The relay will remain off when the soil moisture was above optimal.
 ![](https://i.ibb.co/TY7pn7B/FYP-Relay-Off.png)
 
-### Relay On When Soil Moisture is below Optimal
+#### Relay On When Soil Moisture is below Optimal
 ![](https://i.ibb.co/2ZKWF2F/FYP-Relay-On.png)
-### <a name="sensorRe"></a> Server Node Results  
-### <a name="sensorRe"></a> Power Measure Node Results  
+### <a name="serverRe"></a> Server Node Results  
+The server node acts like a middleman between the client nodes and the IoT platform (ThingsBoard). 
+
+### <a name="pmRe"></a> Power Measure Node Results  
+#### Solar Panel Current, Voltage and Power Table
+![](https://i.ibb.co/wsZhFtN/FYP-Solar-Charging-Table.png)   
+
+#### Solar Panel Power Graph
+![](https://i.ibb.co/pPcYnHZ/FYP-Solar-Charging-Power-Graph.png)  
+
+#### Power Consumption of Sensor Nodes
+![](https://i.ibb.co/d4w9TWD/FYP-Sensor-Node-Power-Consumption.png)
+
+#### Battery Life for Sensor Nodes (3400mAh battery)
+![](https://i.ibb.co/Y3048BR/FYP-Sensor-Node-Battery-Life.png)
 
 [comment]: # (End of Results)
 
