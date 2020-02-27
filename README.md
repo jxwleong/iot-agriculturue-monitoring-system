@@ -8,7 +8,8 @@
             2. [Relay node](#relay)  
        2. [Server node](#server)  
        3. [Power measure node](#pmNode)  
-       
+4.  [Software setup](#softSet)  
+
 7.  [Results](#result)
        1. [Sensor node](#sensorRe)
        2. [Relay node](#relayRe)
@@ -64,7 +65,30 @@ The project consists of 4 hardware nodes which are sensor nodes, relay node, ser
 
 <p align="center">
    <img src="https://i.ibb.co/C2PzJq8/AP-UOt6s-XOv7hcomx6-a-Cx-LBGX-F-s-Ge-IZLc-QI5ic7cpt-D41-YTys-REdvf-AOPL4531-Iyhiur-Km-Ro-Cz-Ir-S2ro-MAOj-P8f-Cx-Oq-Abqq-Dgs-PEgm-CFRNRGu8v-HXjm-Fpy-CLXhx-Zj-Vyc3w.png)">
-</p>  
+</p>    
+[Back to Contents](#content)
+
+## <a name="softSet"></a> Software Setup   
+### Arduino IDE
+1. Setup the IDE by referring [Appendix for setup of Arduino IDE](#setArduino).
+2. Install the following libraries:  
+> - ArduinoJson ver 5.13.5
+> - ThingsBoard ver 0.2.0
+> - PubSubClient ver 2.7.0
+> - SDHT sensor library ver 2.0.0
+> - uMQTTBroker : Latest Version from https://github.com/martin-ger/uMQTTBroker, 27 Nov 2019  
+> - ACS712 arduino : Latest Version from https://github.com/rkoptev/ACS712-arduino, 27 Feb 2020
+3. Get the credentials such as TOKEN_ADDRESS [Step 4](#setThingsBoard), IP addresses of respective node (exclude power measure node) this [code](https://github.com/jason9829/IoTAgricultureMonitoringSystem/blob/31d813acc46cd80319684c57ef3c5fe5e4891621/PrototypeAndTestCode/Wireless%20Network%20(server%20and%20client)/getIpAddress/getIpAddress.ino) and wifi credentials.  
+4. Upload the codes to respective node.  
+
+### ThingsBoard
+1. Setup the ThingsBoard dashboard by referring [Appendix for setup of ThingsBoard](#setThingsBoard), the setup should look like figure below.
+![](https://i.ibb.co/M8qm8s5/FYP-Things-Board-Full-Dashboard.png)
+2. Setup the rule engine of the ThingsBoard as shown below.
+![](https://i.ibb.co/pXJvH0N/ny9fz-Nefm3-OMo-Gx4v-Wu-W46-FNu0h-Zx38-Kq-Ch-KBbx01zo5-Yj-Xg-Fv-Bob-Kjvm088-FSPyp8v7-Gvfd-BUW4p-U-Sl-Ul-NMD7-Wu-Wvu-J8-Eo-w-KXF-Pr4q-Pav-D7q-D0nxr-FLPT1v-LYEvb-ml-V4c.png)
+
+
+[Back to Contents](#content)  
 
 ### <a name="client"></a> Client Node
 This project consists two type of client nodes which are sensor nodes and relay node. These client nodes are setup to communicate to the IoT platform (ThingsBoard) via server node.  
