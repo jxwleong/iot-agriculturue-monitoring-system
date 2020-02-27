@@ -2,7 +2,7 @@
 ## <a name="content"></a> Contents  
 1.  [What is this repo about?](#repoIntro)
 2.  [Requirements for this repo](#repoReq)
-4.  [Hardware setup](#hardSet)  
+3.  [Hardware setup](#hardSet)  
        1. [Client node](#client)  
             1. [Sensor node](#sensor)  
             2. [Relay node](#relay)  
@@ -10,6 +10,10 @@
        3. [Power measure node](#pmNode)  
        
 7.  [Results](#result)
+       1. [Sensor node](#sensorRe)
+       2. [Relay node](#relayRe)
+       3. [Server node](#serverRe)
+       4. [Power measure node](#pmRe)
 8.  [References](#refer)  
 9.  [Appendices](#appdix)
     1. [Setup of Arduino IDE](#setArduino)
@@ -18,11 +22,14 @@
 [comment]: # (End of Contents)
 
 
+
 [comment]: # (Start of What is this repo about?)
 ## <a name="repoIntro"></a> What is this repo about?
 This is an project to monitoring the soil moisture of the soil of plant, if the soil moisture falls below optimal level, then an automated irrigiation system to turn on the water pump.  
 
 [comment]: # (End of What is this repo about?)
+
+
 
 [comment]: # (Start of Requirements for this repo)
 ## <a name="repoReq"></a> Requirements for this repo  
@@ -93,7 +100,7 @@ The server node was given several tasks when the system is running:
 - When soil moisture data was received, the sensor node need to make decision whether to turn relay 'ON' or 'OFF' by sending command.
 - Sent command received from RPC Remote Shell on ThingsBoard to client nodes using MQTT.
 
-#### Flowchart of Senver Node
+#### Flowchart of Server Node
 ![](https://i.ibb.co/ZNx0bnj/i0t0a-Lj-RHe-W3bnvj-J5i-AYCM3-W1-Wbc-EOZl-Yac1c-Kz-A27a-Eq-X-p-VPSqgl-S3y-FFIKi4-A5y-ZLJb0-ZATCqd-WMASqx-Zkkvzgy-QQEBI0-Vwl-B.png)
 
 #### Breadboard View of Server Node
@@ -120,12 +127,38 @@ Since the sensor nodes are design to acquire data remotely, it is important to k
 [comment]: # (End of Hardware Setup)
 
 
+
+[comment]: # (Start of Results)
+## <a name="results"></a> Results     
+### <a name="sensorRe"></a> Sensor Node Results   
+#### Sensor Readings on ThingsBoard's Dashboard  
+![](https://i.ibb.co/DVXSWKh/Result-Sensor-Data-on-Things-Board.png)  
+#### Sensor Readings Export to Desktop (ThingsBoard Professional Edition)  
+![](https://i.ibb.co/vsSGchX/IZZd-Dkbv-AVb-VUj3tl-VBET7-Vdcs-2-Oj-Fomuwcua9-Jea-PErrou-Fz9flkjva8o-UR0vt-P5-XCh-ZL1j8l-O0w-Rn2l-Dx-Vhk-u-M0-Tgr9-T6-ZBJhb7-Dka-JQr-Ds-HWidu3g-IU9b0b-Sa7t-WXTK-Yo.png)  
+#### Warning When Soil Moisture is not Optimal.
+![](https://i.ibb.co/nRF9XbQ/FYP-Sensor-Alarm-Warning.png)
+
+### <a name="sensorRe"></a> Relay Node Results  
+#### Relay Off When Soil Moisture is Optimal
+The relay will remain off when the soil moisture was above optimal.
+![](https://i.ibb.co/TY7pn7B/FYP-Relay-Off.png)
+
+### Relay On When Soil Moisture is below Optimal
+![](https://i.ibb.co/2ZKWF2F/FYP-Relay-On.png)
+### <a name="sensorRe"></a> Server Node Results  
+### <a name="sensorRe"></a> Power Measure Node Results  
+
+[comment]: # (End of Results)
+
+
+
 [comment]: # (Start of References)
 ## <a name="references"></a> References    
     
 [Back to Contents](#content) 
 
 [comment]: # (End of References)
+
 
 
 [comment]: # (Start of Appendices)
