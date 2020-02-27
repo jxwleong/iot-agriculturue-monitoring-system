@@ -1,5 +1,5 @@
-[comment]: # (This actually is the most platform independent comment)
-## Contents  
+[comment]: # (Start of Contents)
+## <a name="content"></a> Contents  
 1.  [What is this repo about?](#repoIntro)
 2.  [Requirements for this repo](#repoReq)
 3.  [Schematic](#schematic)
@@ -7,15 +7,23 @@
     1. [Sensor node](#sensor)
     2. [Relay node](#relay)
 5.  [Server node](#server)
+6.  [Power measure node](#pmNode)
+7.  [Results](#result)
 8.  [References](#refer)  
 9.  [Appendices](#appdix)
     1. [Setup of Arduino IDE](#setArduino)
-    2. [Setup of ThingsBoard](#setThingsBoard)
+    2. [Setup of ThingsBoard](#setThingsBoard)  
+    
+[comment]: # (End of Contents)
 
+
+[comment]: # (Start of What is this repo about?)
 ## <a name="repoIntro"></a> What is this repo about?
-This is an project to monitoring the soil moisture of the soil of plant, if the soil moisture falls below optimal level, then an automated irrigiation 
-system to turn on the water pump.  
+This is an project to monitoring the soil moisture of the soil of plant, if the soil moisture falls below optimal level, then an automated irrigiation system to turn on the water pump.  
 
+[comment]: # (End of What is this repo about?)
+
+[comment]: # (Start of Requirements for this repo)
 ## <a name="repoReq"></a> Requirements for this repo  
 **Hardware**
 1. NodeMCU x 2
@@ -32,20 +40,26 @@ system to turn on the water pump.
 1. [Arduino IDE](https://www.arduino.cc/en/Main/Software)  
 2. ThingsBoard (Demo version/ Professional Edition if you want to export the data to local PC)  
 
-For the schematic of this repo, please click [here](#schematic).
+For the schematic of this repo, please click [here](#schematic).  
+  
+[Back to Contents](#content)
 
+[comment]: # (End of Requirements for this repo)
+
+
+[comment]: # (Start of Schematic)
 ## <a name="schematic"></a> Schematic  
 ### Block Diagram of Integrated System
 <p align="center">
    <img src="https://i.ibb.co/C2PzJq8/AP-UOt6s-XOv7hcomx6-a-Cx-LBGX-F-s-Ge-IZLc-QI5ic7cpt-D41-YTys-REdvf-AOPL4531-Iyhiur-Km-Ro-Cz-Ir-S2ro-MAOj-P8f-Cx-Oq-Abqq-Dgs-PEgm-CFRNRGu8v-HXjm-Fpy-CLXhx-Zj-Vyc3w.png)">
-</p>
-
-
-### Breadboard View of Power Measure Node
-<p align="center">
-   <img src="https://i.ibb.co/8PxqHnr/KWz9-UOa8v6-FExts-Hi-TULtq8w-Orp-Q5z-JRfy1-C0-G3-MSc-K5-RTTx-Ukusgt-A0k-Kubdh-F6z1p-Ey-YBRPVTEr-TUc-Oxom-TE3-XRHnfh-VMq-JVP-Uyrlvcb-F8q-IGg-VSsm-Cqsy-YDYJYex6-Rd-LLy0.png">
 </p>  
+    
+[Back to Contents](#content)
 
+[comment]: # (End of Schematic)
+ 
+ 
+[comment]: # (Start of Client Node)
 ## <a name="client"></a> Client Node
 This project consists two type of client nodes which are sensor nodes and relay node. These client nodes are setup to communicate to the IoT platform (ThingsBoard) via server node.  
 
@@ -69,23 +83,59 @@ The relay node responsible to turn on the relay to power up the water pump if th
 #### Breadboard View of Relay Node
 <p align="center">
    <img src="https://i.ibb.co/bvNbRzX/3q7-Wxyfvjq-Xe-JOr4y-Kwfc-P5o-a-Rs-R-PLRMl-L-Voz-ENwd-Y5e-Xu-JRq-Qocnb6-9-XDgqg-H8-m-M0fe5-FJzb-Fhs0-T4v-Ti8-J9-r7ena-Aqst-Bz-Gf-Dqm4bh-Df-QITUt-Fcxc5hz-Z2-K-b-Nd07o.png">
-</p>
+</p>  
+    
+[Back to Contents](#content)
 
-## <a name="server"></a> Server node  
+[comment]: # (End of Client Node)
+
+
+[comment]: # (Start of Server Node)
+## <a name="server"></a> Server Node  
 The server node was given several tasks when the system is running:
 - Upload the data received from sensor nodes to ThingsBoard.
 - When soil moisture data was received, the sensor node need to make decision whether to turn relay 'ON' or 'OFF' by sending command.
 - Sent command received from RPC Remote Shell on ThingsBoard to client nodes using MQTT.
 
-### Flowchart of Sensor Node
+### Flowchart of Senver Node
 ![](https://i.ibb.co/ZNx0bnj/i0t0a-Lj-RHe-W3bnvj-J5i-AYCM3-W1-Wbc-EOZl-Yac1c-Kz-A27a-Eq-X-p-VPSqgl-S3y-FFIKi4-A5y-ZLJb0-ZATCqd-WMASqx-Zkkvzgy-QQEBI0-Vwl-B.png)
 
 ### Breadboard View of Server Node
 <p align="center">
    <img src="https://i.ibb.co/TbN57jq/v6s4-DIq41f-Y5d-Fkk-Nx-Az4u-Iax-JVjh7cwa-HSh-N6-Lmb-Gic-z-E5-MR-ol-CK9bg-r-Ph-Li-PH-Iy-Xx7k-G4-Xb9-Vi-Jf-NN26h-CCHz-Pd-Eo-VT-pko-YQxr-NG979m-PASw8rlk-CY-l-O5p-Nuv-NU9f4.png">
-</p>
-## <a name="references"></a> References   
+</p>  
+    
+[Back to Contents](#content)
 
+[comment]: # (End of Server Node)
+
+
+[comment]: # (Start of Power Measure Node)
+## <a name="pmNode"></a> Power Measure Node 
+Since the sensor nodes are design to acquire data remotely, it is important to know the power consumption of the sensor nodes. With the power consumptions of the sensor nodes, the battery life span can be determined. Moreover, suitable energy harvesting system can be determined for recharge the battery of sensor nodes. Thus, this node is created just to test the power consumption (Will not used in the field).
+
+### Flowchat of Power Measure Node
+![](https://i.ibb.co/rtFYwg4/jd-Pkltuk2r802-ZBow-V78m6-G0-v-Lq9ql3m-DNWFu-TFgbdb1x-SORAB-2fm-LBKn5w-JNTL9a-QDGZp-Oa-om-Ayn8-G43-Rd-JHCDm5-Hf-TVo-WIdqi-L.png)  
+
+### Breadboard View of Power Measure Node
+<p align="center">
+   <img src="https://i.ibb.co/8PxqHnr/KWz9-UOa8v6-FExts-Hi-TULtq8w-Orp-Q5z-JRfy1-C0-G3-MSc-K5-RTTx-Ukusgt-A0k-Kubdh-F6z1p-Ey-YBRPVTEr-TUc-Oxom-TE3-XRHnfh-VMq-JVP-Uyrlvcb-F8q-IGg-VSsm-Cqsy-YDYJYex6-Rd-LLy0.png">
+</p>   
+    
+[Back to Contents](#content)
+
+[comment]: # (End of Power Measure Node)
+
+
+[comment]: # (Start of References)
+## <a name="references"></a> References    
+    
+[Back to Contents](#content) 
+
+[comment]: # (End of References)
+
+
+[comment]: # (Start of Appendices)
 ## <a name="appdix"></a>  Appendices  
 ### <a name="setArduino"></a>  Setup of Arduino IDE
 1. Download and install Arduino IDE from https://www.arduino.cc/en/main/software.
@@ -133,4 +183,8 @@ The server node was given several tasks when the system is running:
 12. To add any widgets to the dashboard, just click Add new widget > Create new widget. Then select the widget type and click any desired widget.  
 ![](https://i.ibb.co/289FgBF/gd8-Xwb-Pl-Mf-I6ldi2-Bpzd-Kj30-UQOys-Ysn-X3k-K1-MGRj-3hw-TN-s-B5-GL8t7-KIMJH4-E57-U8w3-wsss-Xeg-URU1-Ev6-ITMlklv-KRtm-Vetg-SRY94-Sngz-Scu-EW-8xl-UAEDh-Wd-P7br6-BGk.png)
 13. Select the Entity alias as alias created at step11. Then, type the parameter name desired and press ‘ENTER’. Then click ‘ADD’. The similar steps can be applied for other widgets.    
-![](https://i.ibb.co/0V7jyNt/k-Epy1n-RDfm-DD68-f-MX77-Pfi-LBq-Dt4a3-LDqq-Kc-Larap8z-YNYtj-Jr2-Vog8-Js9c-UPxw-Tum-IKId-I4r2qw-XSx-Wg0-FZ-8o-A7qx-YBq-PHAPU6-J.png)
+![](https://i.ibb.co/0V7jyNt/k-Epy1n-RDfm-DD68-f-MX77-Pfi-LBq-Dt4a3-LDqq-Kc-Larap8z-YNYtj-Jr2-Vog8-Js9c-UPxw-Tum-IKId-I4r2qw-XSx-Wg0-FZ-8o-A7qx-YBq-PHAPU6-J.png)  
+    
+[Back to Contents](#content)
+
+[comment]: # (End of Appendices)
