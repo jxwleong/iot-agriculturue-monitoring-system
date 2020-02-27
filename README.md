@@ -1,3 +1,4 @@
+[comment]: # (This actually is the most platform independent comment)
 ## Contents  
 1.  [What is this repo about?](#repoIntro)
 2.  [Requirements for this repo](#repoReq)
@@ -33,33 +34,58 @@ system to turn on the water pump.
 
 For the schematic of this repo, please click [here](#schematic).
 
-## <a name="schematic"></a> Schematic
+## <a name="schematic"></a> Schematic  
 ### Block Diagram of Integrated System
 <p align="center">
    <img src="https://i.ibb.co/C2PzJq8/AP-UOt6s-XOv7hcomx6-a-Cx-LBGX-F-s-Ge-IZLc-QI5ic7cpt-D41-YTys-REdvf-AOPL4531-Iyhiur-Km-Ro-Cz-Ir-S2ro-MAOj-P8f-Cx-Oq-Abqq-Dgs-PEgm-CFRNRGu8v-HXjm-Fpy-CLXhx-Zj-Vyc3w.png)">
 </p>
 
-### Breadboard View of Sensor Node
+
+### Breadboard View of Power Measure Node
+<p align="center">
+   <img src="https://i.ibb.co/8PxqHnr/KWz9-UOa8v6-FExts-Hi-TULtq8w-Orp-Q5z-JRfy1-C0-G3-MSc-K5-RTTx-Ukusgt-A0k-Kubdh-F6z1p-Ey-YBRPVTEr-TUc-Oxom-TE3-XRHnfh-VMq-JVP-Uyrlvcb-F8q-IGg-VSsm-Cqsy-YDYJYex6-Rd-LLy0.png">
+</p>  
+
+## <a name="client"></a> Client Node
+This project consists two type of client nodes which are sensor nodes and relay node. These client nodes are setup to communicate to the IoT platform (ThingsBoard) via server node.  
+
+### <a name="sensor"></a> Sensor Node
+The sensor nodes are incharged for acquiring the sensor data and sent it to server node via MQTT. Moreover, the can also receive command from ThingsBoard using MQTT.  
+
+#### Flowchart of Sensor Node
+![](https://i.ibb.co/VNRgZSc/ka-NMp1snsh-MYrh-F-o-L-d-UT-MT2-Sg-EA5z-Jk-IW5-Fu9jb7bk-HTp-AOtzvym0-EMAb-Kc-PCQPLOqp-XE3-QGGv-Ka-Sr-JDSIBj9tdxx-Q-HEFKu-Ze3c0-Ac-Pg-VUzo-TGp-WRv0-D7-P5-Vb4h3-SJk-XI.png)  
+
+#### Breadboard View of Sensor Node
 <p align="center">
    <img src="https://i.ibb.co/j5MsXsd/M6-Iv-G6-GPo-S4o-G4-G4hq-MTt-FKUtk-LH4-WHpbzdf-Xx7-C1-ELN7s-JC0-I-f-I-n-QCjmcu-Wa-O26-XASBFa-QNE-H4s-AWqxd4-MPHgc-p7-XTXf-D1h.png">
+</p>  
+
+### <a name="relay"></a> Relay Node
+The relay node responsible to turn on the relay to power up the water pump if the soil moisture is below optimal. It toggle by receiving 'ON' or 'OFF' command from server node using MQTT. 
+
+#### Flowchart of Relay Node
+![](https://i.ibb.co/pJHzLf5/rn40-XHB7-J5a-FQGo-VLau-BWk1a-Cr-JQcy-Fvlx-I2-LVtbf-Xdbml-7j-Veq-JK4h3x4-Xkfml-Ysbi-Bp-ELI6jf-Bo-IDw50g8fun5-Qtjz-VQ3-Tn-A6z8-Lp9u-Zyn-Co-L43-St2u2s9z-Sz-Pfvs0g-Cr-Kj-Y.png)  
+
+#### Breadboard View of Relay Node
+<p align="center">
+   <img src="https://i.ibb.co/bvNbRzX/3q7-Wxyfvjq-Xe-JOr4y-Kwfc-P5o-a-Rs-R-PLRMl-L-Voz-ENwd-Y5e-Xu-JRq-Qocnb6-9-XDgqg-H8-m-M0fe5-FJzb-Fhs0-T4v-Ti8-J9-r7ena-Aqst-Bz-Gf-Dqm4bh-Df-QITUt-Fcxc5hz-Z2-K-b-Nd07o.png">
 </p>
+
+## <a name="server"></a> Server node  
+The server node was given several tasks when the system is running:
+- Upload the data received from sensor nodes to ThingsBoard.
+- When soil moisture data was received, the sensor node need to make decision whether to turn relay 'ON' or 'OFF' by sending command.
+- Sent command received from RPC Remote Shell on ThingsBoard to client nodes using MQTT.
+
+### Flowchart of Sensor Node
+![](https://i.ibb.co/ZNx0bnj/i0t0a-Lj-RHe-W3bnvj-J5i-AYCM3-W1-Wbc-EOZl-Yac1c-Kz-A27a-Eq-X-p-VPSqgl-S3y-FFIKi4-A5y-ZLJb0-ZATCqd-WMASqx-Zkkvzgy-QQEBI0-Vwl-B.png)
 
 ### Breadboard View of Server Node
 <p align="center">
    <img src="https://i.ibb.co/TbN57jq/v6s4-DIq41f-Y5d-Fkk-Nx-Az4u-Iax-JVjh7cwa-HSh-N6-Lmb-Gic-z-E5-MR-ol-CK9bg-r-Ph-Li-PH-Iy-Xx7k-G4-Xb9-Vi-Jf-NN26h-CCHz-Pd-Eo-VT-pko-YQxr-NG979m-PASw8rlk-CY-l-O5p-Nuv-NU9f4.png">
 </p>
+## <a name="references"></a> References   
 
-### Breadboard View of Relay Node
-<p align="center">
-   <img src="https://i.ibb.co/bvNbRzX/3q7-Wxyfvjq-Xe-JOr4y-Kwfc-P5o-a-Rs-R-PLRMl-L-Voz-ENwd-Y5e-Xu-JRq-Qocnb6-9-XDgqg-H8-m-M0fe5-FJzb-Fhs0-T4v-Ti8-J9-r7ena-Aqst-Bz-Gf-Dqm4bh-Df-QITUt-Fcxc5hz-Z2-K-b-Nd07o.png">
-</p>
-
-### Breadboard View of Power Measure Node
-<p align="center">
-   <img src="https://i.ibb.co/8PxqHnr/KWz9-UOa8v6-FExts-Hi-TULtq8w-Orp-Q5z-JRfy1-C0-G3-MSc-K5-RTTx-Ukusgt-A0k-Kubdh-F6z1p-Ey-YBRPVTEr-TUc-Oxom-TE3-XRHnfh-VMq-JVP-Uyrlvcb-F8q-IGg-VSsm-Cqsy-YDYJYex6-Rd-LLy0.png">
-</p>
-
-## <a name="references"></a> References  
 ## <a name="appdix"></a>  Appendices  
 ### <a name="setArduino"></a>  Setup of Arduino IDE
 1. Download and install Arduino IDE from https://www.arduino.cc/en/main/software.
