@@ -105,7 +105,7 @@ The server node was given several tasks when the system is running:
 
 #### Breadboard View of Server Node
 <p align="center">
-   <img src="https://i.ibb.co/TbN57jq/v6s4-DIq41f-Y5d-Fkk-Nx-Az4u-Iax-JVjh7cwa-HSh-N6-Lmb-Gic-z-E5-MR-ol-CK9bg-r-Ph-Li-PH-Iy-Xx7k-G4-Xb9-Vi-Jf-NN26h-CCHz-Pd-Eo-VT-pko-YQxr-NG979m-PASw8rlk-CY-l-O5p-Nuv-NU9f4.png">
+     <img src="https://i.ibb.co/TbN57jq/v6s4-DIq41f-Y5d-Fkk-Nx-Az4u-Iax-JVjh7cwa-HSh-N6-Lmb-Gic-z-E5-MR-ol-CK9bg-r-Ph-Li-PH-Iy-Xx7k-G4-Xb9-Vi-Jf-NN26h-CCHz-Pd-Eo-VT-pko-YQxr-NG979m-PASw8rlk-CY-l-O5p-Nuv-NU9f4.png" height = "360" width="540">
 </p>  
     
 [Back to Contents](#content)
@@ -114,12 +114,12 @@ The server node was given several tasks when the system is running:
 ### <a name="pmNode"></a> Power Measure Node 
 Since the sensor nodes are design to acquire data remotely, it is important to know the power consumption of the sensor nodes. With the power consumptions of the sensor nodes, the battery life span can be determined. Moreover, suitable energy harvesting system can be determined for recharge the battery of sensor nodes. Thus, this node is created just to test the power consumption (Will not used in the field).
 
-#### Flowchat of Power Measure Node
+#### Flowchart of Power Measure Node
 ![](https://i.ibb.co/rtFYwg4/jd-Pkltuk2r802-ZBow-V78m6-G0-v-Lq9ql3m-DNWFu-TFgbdb1x-SORAB-2fm-LBKn5w-JNTL9a-QDGZp-Oa-om-Ayn8-G43-Rd-JHCDm5-Hf-TVo-WIdqi-L.png)  
 
 #### Breadboard View of Power Measure Node
 <p align="center">
-   <img src="https://i.ibb.co/8PxqHnr/KWz9-UOa8v6-FExts-Hi-TULtq8w-Orp-Q5z-JRfy1-C0-G3-MSc-K5-RTTx-Ukusgt-A0k-Kubdh-F6z1p-Ey-YBRPVTEr-TUc-Oxom-TE3-XRHnfh-VMq-JVP-Uyrlvcb-F8q-IGg-VSsm-Cqsy-YDYJYex6-Rd-LLy0.png">
+       <img src="https://i.ibb.co/8PxqHnr/KWz9-UOa8v6-FExts-Hi-TULtq8w-Orp-Q5z-JRfy1-C0-G3-MSc-K5-RTTx-Ukusgt-A0k-Kubdh-F6z1p-Ey-YBRPVTEr-TUc-Oxom-TE3-XRHnfh-VMq-JVP-Uyrlvcb-F8q-IGg-VSsm-Cqsy-YDYJYex6-Rd-LLy0.png">
 </p>   
     
 [Back to Contents](#content)
@@ -149,17 +149,29 @@ The relay will remain off when the soil moisture was above optimal.
 The server node acts like a middleman between the client nodes and the IoT platform (ThingsBoard). 
 
 ### <a name="pmRe"></a> Power Measure Node Results  
-#### Solar Panel Current, Voltage and Power Table
-![](https://i.ibb.co/wsZhFtN/FYP-Solar-Charging-Table.png)   
+#### Solar Panel Current, Voltage and Power Table  
+<p align="center">
+     <img src="https://i.ibb.co/wsZhFtN/FYP-Solar-Charging-Table.png" height = "360" width="540">
+</p>  
 
-#### Solar Panel Power Graph
-![](https://i.ibb.co/pPcYnHZ/FYP-Solar-Charging-Power-Graph.png)  
+#### Solar Panel Power Graph  
+<p align="center">
+     <img src="https://i.ibb.co/pPcYnHZ/FYP-Solar-Charging-Power-Graph.png" height = "360" width="540">
+</p>  
 
-#### Power Consumption of Sensor Nodes
-![](https://i.ibb.co/d4w9TWD/FYP-Sensor-Node-Power-Consumption.png)
+#### Power Consumption of Sensor Nodes  
+<p align="center">
+     <img src="https://i.ibb.co/d4w9TWD/FYP-Sensor-Node-Power-Consumption.png" height = "360" width="540">
+</p>  
+
 
 #### Battery Life for Sensor Nodes (3400mAh battery)
-![](https://i.ibb.co/Y3048BR/FYP-Sensor-Node-Battery-Life.png)
+The battery used by sensor nodes is UltraFire 18650 3.7V 4200mAh Li-ion Battery. By using the simple equation, the battery life can be calculated.
+![](https://i.ibb.co/8jXQH6d/FYP-Battery-Life-Equation.gif)    
+The battery life span (hrs) was calculated and tabulated in the figure below.  
+<p align="center">
+     <img src="https://i.ibb.co/Y3048BR/FYP-Sensor-Node-Battery-Life.png" height = "360" width="540">
+</p>  
 
 [comment]: # (End of Results)
 
