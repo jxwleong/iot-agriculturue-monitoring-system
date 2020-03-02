@@ -40,10 +40,19 @@ This is an project to monitoring the soil moisture of the soil of plant, if the 
 3. 5V Relay x 1  
 4. AC Power Socket Rocker Switch 3 Pin x 1
 5. 16AWG Silicone Wire x 1m (optional for different colour)
-6. 3 pin wall socket x 1
-7. An enclosure box for relay and MCU x 1
-8. Soil Moisture sensor x 2
+6. 3 pin Wall Socket x 1
+7. An Enclosure Box for Relay and MCU x 1
+8. Soil Moisture Sensor x 2
 9. DHT11 Soil and Humidity Sensor x2
+10. 200mA 5V Solar Panel x2
+11. TP4056 1A Battery Charging Module x2
+12. ACS712 Current Sensor x1
+13. 25V Voltage Sensor x1
+14. CD4051 Analog Mux/ Demux x1
+15. Schottky Diode 1N5822 x1
+16. UltraFire 18650 3.7V 4200mAh Li-ion Battery x2
+17. 18650 Battery Holder x2
+18. 3.3V Voltage Regulator x2
 
 **Software**
 1. [Arduino IDE](https://www.arduino.cc/en/Main/Software)  
@@ -203,6 +212,43 @@ The battery life span (hrs) was calculated and tabulated in the figure below.
 
 [comment]: # (Start of References)
 ## <a name="references"></a> References    
+[1] Thakare, S. and Bhagat, P.H., 2018, June. Arduino-Based Smart Irrigation Using Sensors and ESP8266 WiFi Module. In 2018 Second International Conference on Intelligent Computing and Control Systems (ICICCS) (pp. 1-5). IEEE.
+
+[2] Athani, S., Tejeshwar, C.H., Patil, M.M., Patil, P. and Kulkarni, R., 2017, February. Soil moisture monitoring using IoT enabled arduino sensors with neural networks for improving soil management for farmers and predict seasonal rainfall for planning future harvest in North Karnataka—India. In 2017 International Conference on I-SMAC (IoT in Social, Mobile, Analytics and Cloud)(I-SMAC) (pp. 43-48). IEEE.
+
+[3] Tsai, C.F. and Liang, T.W., 2018, November. Application of IoT Technology in The Simple Micro-farming Environmental Monitoring. In 2018 IEEE International Conference on Advanced Manufacturing (ICAM) (pp. 170-172). IEEE.
+
+[4] Rachmani, A.F. and Zulkifli, F.Y., 2018, October. Design of IoT Monitoring System Based on LoRa Technology for Starfruit Plantation. In TENCON 2018-2018 IEEE Region 10 Conference (pp. 1241-1245). IEEE.
+
+[5] Ma, Y.W. and Chen, J.L., 2018, April. Toward intelligent agriculture service platform with lora-based wireless sensor network. In 2018 IEEE International Conference on Applied System Invention (ICASI) (pp. 204-207). IEEE.
+
+[6] Xue-fen, W., Xing-jing, D., Yi, Y., Jing-wen, Z., Sardar, M.S. and Jian, C., 2017, December. Smartphone based LoRa in-soil propagation measurement for wireless underground sensor networks. In 2017 IEEE Conference on Antenna Measurements & Applications (CAMA) (pp. 114-117). IEEE.
+
+[7] Malik, H., Kandler, N., Alam, M.M., Annus, I., Le Moullec, Y. and Kuusik, A., 2018, March. Evaluation of low power wide area network technologies for smart urban drainage systems. In 2018 IEEE International Conference on Environmental Engineering (EE) (pp. 1-5). IEEE.
+
+[8] Rahul, D.S., Sudarshan, S.K., Meghana, K., Nandan, K.N., Kirthana, R. and Sure, P., 2018, January. IoT based solar powered Agribot for irrigation and farm monitoring: Agribot for irrigation and farm monitoring. In 2018 2nd International Conference on Inventive Systems and Control (ICISC) (pp. 826-831). IEEE.
+
+[9] Li, H., Huang, M., Tan, D., Liao, Q., Zou, Y. and Jiang, Y., 2018. Effects of soil moisture content on the growth and physiological status of ginger (Zingiber officinale Roscoe). Acta physiologiae plantarum, 40(7), p.125.
+
+[10] Qiu, C., Gaudreau, L., Nemati, R., Gosselin, A. and Desjardins, Y., 2017. Primocane red raspberry response to fertigation EC, types of substrate and propagation methods. EUROPEAN JOURNAL OF HORTICULTURAL SCIENCE, 82(2), pp.72-80.
+
+[11] Comparison of Wireless Technologies (Bluetooth, WiFi, BLE, Zigbee, Z-Wave, 6LoWPAN, NFC, WiFi Direct, GSM, LTE, LoRa, NB-IoT, and LTE-M)), John Teel, https://predictabledesigns.com/wireless_technologies_bluetooth_wifi_zigbee_gsm_lte_lora_nb-iot_lte-m/ (viewd on 3 January 2020)
+
+[12] LoRa | Advantages of LoRaWAN | Disadvantages of LoRaWAN, https://www.rfwireless-world.com/Terminology/Advantages-and-Disadvantages-of-Lora-or-LoRaWAN.html (viewed on 3 January 2020)
+
+[13] Advantages of BLE (Bluetooth Low Energy) | disadvantages of BLE (Bluetooth Low Energy), https://www.rfwireless-world.com/Terminology/Advantages-and-Disadvantages-of-BLE-Bluetooth-Low-Energy.html (viewed on 3 January 2020)
+
+[14] Lee, Development of an FPGA based Iris Recognition System Using Self Organizing Map for Augmented Security FYP Thesis (viewed on 30 December 2019)
+
+[15] How WiFiManager Works with ESP8266, Random Nerd Tutorials, 2018, https://randomnerdtutorials.com/wifimanager-with-esp8266-autoconnect-custom-parameter-and-manage-your-ssid-and-password/ (viewed on 11 January 2020)
+
+[16] Telemetry Plugin, ThingsBoard, https://thingsboard.io/docs/reference/plugins/telemetry/ (viewed on 11 January 2020)
+
+[17] Using RPC capabilities,https://thingsboard.io/docs/user-guide/rpc (viewed on 11 January 2020)
+
+[18] Allegro ACS712 Datasheet, https://www.sparkfun.com/datasheets/BreakoutBoards/0712.pdf (viewed on 10 January 2020)
+
+[19] GreenIQ Smart Garden Hub Gen 3 review, Christopher Null, 2017 , https://www.techhive.com/article/3223128/greeniq-review.html (viewed on 12 January 2020)
     
 [Back to Contents](#content) 
 
