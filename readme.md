@@ -1,24 +1,23 @@
 [comment]: # (Start of Contents)
-## <a name="content"></a> Contents  
-1.  [What is this repo about?](#repoIntro)
-2.  [Requirements for this repo](#repoReq)
-3.  [Hardware setup](#hardSet)  
-       1. [Client node](#client)  
-            1. [Sensor node](#sensor)  
-            2. [Relay node](#relay)  
-       2. [Server node](#server)  
-       3. [Power measure node](#pmNode)  
-4.  [Software setup](#softSet)  
-
-7.  [Results](#result)
-       1. [Sensor node](#sensorRe)
-       2. [Relay node](#relayRe)
-       3. [Server node](#serverRe)
-       4. [Power measure node](#pmRe)
-8.  [References](#refer)  
-9.  [Appendices](#appdix)
-    1. [Setup of Arduino IDE](#setArduino)
-    2. [Setup of ThingsBoard](#setThingsBoard)  
+## <a name="content"></a> Table of Contents  
+* [What is this repo about?](#repoIntro)
+* [Requirements for this repo](#repoReq)
+* [Hardware setup](#hardSet)  
+  * [Client node](#client)  
+    * [Sensor node](#sensor)  
+    * [Relay node](#relay)  
+  * [Server node](#server)  
+  * [Power measure node](#pmNode) 
+* [Software setup](#softSet)  
+* [Results](#result)
+  * [Sensor node](#sensorRe)
+  * [Relay node](#relayRe)
+  * [Server node](#serverRe)
+  * [Power measure node](#pmRe)  
+* [References](#refer)  
+* [Appendices](#appdix)  
+  * [Setup of Arduino IDE](#setArduino)
+  * [Setup of ThingsBoard](#setThingsBoard)  
     
 [comment]: # (End of Contents)
 
@@ -162,7 +161,7 @@ Since the sensor nodes are design to acquire data remotely, it is important to k
 
 
 [comment]: # (Start of Results)
-## <a name="results"></a> Results     
+## <a name="result"></a> Results     
 ### <a name="sensorRe"></a> Sensor Node Results   
 #### Sensor Readings on ThingsBoard's Dashboard  
 ![](https://i.ibb.co/DVXSWKh/Result-Sensor-Data-on-Things-Board.png)  
@@ -211,7 +210,7 @@ The battery life span (hrs) was calculated and tabulated in the figure below.
 
 
 [comment]: # (Start of References)
-## <a name="references"></a> References    
+## <a name="refer"></a> References    
 [1] Thakare, S. and Bhagat, P.H., 2018, June. Arduino-Based Smart Irrigation Using Sensors and ESP8266 WiFi Module. In 2018 Second International Conference on Intelligent Computing and Control Systems (ICICCS) (pp. 1-5). IEEE.
 
 [2] Athani, S., Tejeshwar, C.H., Patil, M.M., Patil, P. and Kulkarni, R., 2017, February. Soil moisture monitoring using IoT enabled arduino sensors with neural networks for improving soil management for farmers and predict seasonal rainfall for planning future harvest in North Karnataka—India. In 2017 International Conference on I-SMAC (IoT in Social, Mobile, Analytics and Cloud)(I-SMAC) (pp. 43-48). IEEE.
