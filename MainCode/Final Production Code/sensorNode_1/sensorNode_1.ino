@@ -23,8 +23,8 @@
 
 //----------------------------DEFINITION--------------------------------
 // Definition for WiFi
-#define WIFI_AP "YOUR_WIFI_SSID_HERE"                   // WiFi SSID
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
+#define WIFI_AP "HUAWEI nova 2i"                   // WiFi SSID
+#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
 
 // Definition for timer
 #define CPU_FREQ_80M      80000000
@@ -118,7 +118,7 @@ Ticker sendDataToServer;
 TimeUnit unit = ms;
 
 // MQTT variable
-const char* mqtt_server = "ESP8266_SERVER_IP_ADDRESS";  // Ip address of Server Node
+const char* mqtt_server = "192.168.43.140";  // Ip address of Server Node
 
 // Sleep variable
 volatile SleepStatus sleepStatus = AWAKE;
@@ -190,7 +190,7 @@ char *createJsonStringForSensorReadings(int soilMoisture, float temperature){
 
   StaticJsonBuffer<MAX_JSON_STRING_LENGTH> jsonBuffer;
   JsonObject& object = jsonBuffer.createObject();
-  object["from"] = "Sensor Node 2";
+  object["from"] = "Sensor Node 1";
   object["to"] = "Server Node";
   object["method"] = "sendSensorReadings";
   object["soilMoisture"] = soilMoisture;
@@ -526,7 +526,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Create a random client ID
-    String clientId = "SensorNode2-";
+    String clientId = "SensorNode1-";
     clientId += String(random(0xffff), HEX);
     // Attempt to connect
     if (client.connect(clientId.c_str())) {

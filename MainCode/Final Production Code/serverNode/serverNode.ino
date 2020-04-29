@@ -23,8 +23,8 @@
 
 //----------------------------DEFINITION--------------------------------
 // Definition for WiFi
-#define WIFI_AP "YOUR_WIFI_SSID_HERE"                   // WiFi SSID
-#define WIFI_PASSWORD "YOUR_WIFI_PASSWORD_HERE"         // WiFi PASSWORD
+#define WIFI_AP "HUAWEI nova 2i"                   // WiFi SSID
+#define WIFI_PASSWORD "pdk47322"         // WiFi PASSWORD
 
 // Definition for timer
 #define CPU_FREQ_80M      80000000
@@ -105,8 +105,8 @@ PubSubClient client(wifiClient);    // ThingsBoard
 
 // ThingsBoard variable
 ThingsBoard tb(wifiClient);
-String TOKEN = "ADDRESS_TOKEN";      // Device's Token address created on ThingsBoard
-char thingsboardServer[] = "YOUR_THINGSBOARD_HOST_OR_IP_HERE";   // ip or host of ThingsBoard 
+String TOKEN = "GGUeZWMIFg3rAU7ZaKDQ";      // Device's Token address created on ThingsBoard
+char thingsboardServer[] = "cloud.thingsboard.io";   // ip or host of ThingsBoard 
 
 // Timer variable
 int interruptTimerInMilliS = 5000;
@@ -443,11 +443,13 @@ void on_message(const char* topic, byte* payload, unsigned int length) {
  */
 void sendCommandToRelay(const char *topic, RelayAttribute attribute){
 
-  if(attribute != previousRelayAttribute){
+  //if(attribute != previousRelayAttribute){
+    Serial.println("\nJson Message to Relay: ");
     sprintf(jsonMessageForRelay, jsonSetRelayStatus, attribute);
+    Serial.print(jsonMessageForRelay);
     myBroker.publish(topic, jsonMessageForRelay);
-    previousRelayAttribute = attribute;
-  }
+   // previousRelayAttribute = attribute;
+ // }
 }
   
 //==============END OF MQTT FUNCTION================
