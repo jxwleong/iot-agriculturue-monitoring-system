@@ -1,34 +1,31 @@
-[comment]: # (Start of Contents)
-## <a name="content"></a> Table of Contents  
-* [What is this repo about?](#repoIntro)
-* [Requirements for this repo](#repoReq)
-* [Hardware setup](#hardSet)  
-  * [Client node](#client)  
-    * [Sensor node](#sensor)  
-    * [Relay node](#relay)  
-  * [Server node](#server)  
-  * [Power measure node](#pmNode) 
-* [Software setup](#softSet)  
-* [Results](#result)
-  * [Sensor node](#sensorRe)
-  * [Relay node](#relayRe)
-  * [Server node](#serverRe)
-  * [Power measure node](#pmRe)  
-* [References](#refer)  
-* [Appendices](#appdix)  
-  * [Setup of Arduino IDE](#setArduino)
-  * [Setup of ThingsBoard](#setThingsBoard)  
-    
-[comment]: # (End of Contents)
+# IoT Agriculture Monitoring System
+This IoT monitoring system uses ESP8266 microcontroller such as NodeMCU and WeMos D1 R2 to monitor and upload plant's parameters. NodeMCU act as data acquisition node for plant's parameter such as soil moisture and temperature. Moreover, NodeMCU also used as server node so that the data from acquisition node can be upload to the IoT platform (ThingsBoard). When the acquired data is not optimal for the growth of the plant, the IoT platform will send notifications via email and Telegram. Moreover, the server node will sent a signal to the relay node so that it can turn on the actuator such as pump to water the plant if the soil moisture is too low or the temperature is too high.
+
 
 <br/>  
 
+[comment]: # (Start of Contents)
+## <a name="content"></a> Table of Contents  
+1. [Requirements for this repo](#repoReq)
+2. [Hardware setup](#hardSet)  
+   * [Client node](#client)  
+     * [Sensor node](#sensor)  
+     * [Relay node](#relay)  
+   * [Server node](#server)  
+   * [Power measure node](#pmNode) 
+3. [Software setup](#softSet)  
+4. [Results](#result)
+   * [Sensor node](#sensorRe)
+   * [Relay node](#relayRe)
+   * [Server node](#serverRe)
+   * [Power measure node](#pmRe)  
+5. [References](#refer)  
+6. [Appendices](#appdix)  
+   * [Setup of Arduino IDE](#setArduino)
+   * [Setup of ThingsBoard](#setThingsBoard)  
+    
+[comment]: # (End of Contents)
 
-[comment]: # (Start of What is this repo about?)
-## <a name="repoIntro"></a> What is this repo about?
-This is an project to monitoring the soil moisture of the soil of plant, if the soil moisture falls below optimal level, then an automated irrigiation system to turn on the water pump.  
-
-[comment]: # (End of What is this repo about?)  
   
 <br/>  
 
@@ -52,7 +49,9 @@ This is an project to monitoring the soil moisture of the soil of plant, if the 
 15. Schottky Diode 1N5822 x1
 16. UltraFire 18650 3.7V 4200mAh Li-ion Battery x2
 17. 18650 Battery Holder x2
-18. 3.3V Voltage Regulator x2
+18. 3.3V Voltage Regulator x2  
+
+<br/>  
 
 **Software**
 1. [Arduino IDE](https://www.arduino.cc/en/Main/Software)  
@@ -76,6 +75,7 @@ The project consists of 4 hardware nodes which are sensor nodes, relay node, ser
 <p align="center">
    <img src="https://i.ibb.co/C2PzJq8/AP-UOt6s-XOv7hcomx6-a-Cx-LBGX-F-s-Ge-IZLc-QI5ic7cpt-D41-YTys-REdvf-AOPL4531-Iyhiur-Km-Ro-Cz-Ir-S2ro-MAOj-P8f-Cx-Oq-Abqq-Dgs-PEgm-CFRNRGu8v-HXjm-Fpy-CLXhx-Zj-Vyc3w.png)">
 </p>    
+
 [Back to Contents](#content)   
 
 <br/>  
@@ -93,6 +93,7 @@ The project consists of 4 hardware nodes which are sensor nodes, relay node, ser
 > - ACS712 arduino : Latest Version from https://github.com/rkoptev/ACS712-arduino, 27 Feb 2020
 3. Get the credentials such as TOKEN_ADDRESS [Step 4](#setThingsBoard), IP addresses of respective node (exclude power measure node) this [code](https://github.com/jason9829/IoTAgricultureMonitoringSystem/blob/31d813acc46cd80319684c57ef3c5fe5e4891621/PrototypeAndTestCode/Wireless%20Network%20(server%20and%20client)/getIpAddress/getIpAddress.ino) and wifi credentials.  
 4. Upload the codes to respective node.  
+
 <br/>  
 
 ### ThingsBoard
@@ -103,22 +104,21 @@ The project consists of 4 hardware nodes which are sensor nodes, relay node, ser
 
 
 [Back to Contents](#content)    
-
+  
+  
 <br/>  
 
 ### <a name="client"></a> Client Node
 This project consists two type of client nodes which are sensor nodes and relay node. These client nodes are setup to communicate to the IoT platform (ThingsBoard) via server node.  
-<br/>  
+
 
 #### <a name="sensor"></a> Sensor Node
 The sensor nodes are incharged for acquiring the sensor data and sent it to server node via MQTT. Moreover, the can also receive command from ThingsBoard using MQTT.   
 
-<br/>  
 
 ##### Flowchart of Sensor Node
 ![](https://i.ibb.co/VNRgZSc/ka-NMp1snsh-MYrh-F-o-L-d-UT-MT2-Sg-EA5z-Jk-IW5-Fu9jb7bk-HTp-AOtzvym0-EMAb-Kc-PCQPLOqp-XE3-QGGv-Ka-Sr-JDSIBj9tdxx-Q-HEFKu-Ze3c0-Ac-Pg-VUzo-TGp-WRv0-D7-P5-Vb4h3-SJk-XI.png)   
 
-<br/>  
 
 ##### Breadboard View of Sensor Node
 <p align="center">
@@ -130,12 +130,10 @@ The sensor nodes are incharged for acquiring the sensor data and sent it to serv
 #### <a name="relay"></a> Relay Node
 The relay node responsible to turn on the relay to power up the water pump if the soil moisture is below optimal. It toggle by receiving 'ON' or 'OFF' command from server node using MQTT.  
 
-<br/>  
 
 ##### Flowchart of Relay Node
 ![](https://i.ibb.co/pJHzLf5/rn40-XHB7-J5a-FQGo-VLau-BWk1a-Cr-JQcy-Fvlx-I2-LVtbf-Xdbml-7j-Veq-JK4h3x4-Xkfml-Ysbi-Bp-ELI6jf-Bo-IDw50g8fun5-Qtjz-VQ3-Tn-A6z8-Lp9u-Zyn-Co-L43-St2u2s9z-Sz-Pfvs0g-Cr-Kj-Y.png)  
-
-<br/>  
+ 
 
 ##### Breadboard View of Relay Node
 <p align="center">
@@ -153,12 +151,10 @@ The server node was given several tasks when the system is running:
 - When soil moisture data was received, the sensor node need to make decision whether to turn relay 'ON' or 'OFF' by sending command.
 - Sent command received from RPC Remote Shell on ThingsBoard to client nodes using MQTT.  
 
-<br/>  
 
 #### Flowchart of Server Node
 ![](https://i.ibb.co/ZNx0bnj/i0t0a-Lj-RHe-W3bnvj-J5i-AYCM3-W1-Wbc-EOZl-Yac1c-Kz-A27a-Eq-X-p-VPSqgl-S3y-FFIKi4-A5y-ZLJb0-ZATCqd-WMASqx-Zkkvzgy-QQEBI0-Vwl-B.png)  
 
-<br/>  
 
 #### Breadboard View of Server Node
 <p align="center">
@@ -172,13 +168,11 @@ The server node was given several tasks when the system is running:
 
 ### <a name="pmNode"></a> Power Measure Node 
 Since the sensor nodes are design to acquire data remotely, it is important to know the power consumption of the sensor nodes. With the power consumptions of the sensor nodes, the battery life span can be determined. Moreover, suitable energy harvesting system can be determined for recharge the battery of sensor nodes. Thus, this node is created just to test the power consumption (Will not used in the field).  
-
-<br/>  
+ 
 
 #### Flowchart of Power Measure Node
 ![](https://i.ibb.co/rtFYwg4/jd-Pkltuk2r802-ZBow-V78m6-G0-v-Lq9ql3m-DNWFu-TFgbdb1x-SORAB-2fm-LBKn5w-JNTL9a-QDGZp-Oa-om-Ayn8-G43-Rd-JHCDm5-Hf-TVo-WIdqi-L.png)  
-
-<br/>  
+ 
 
 #### Breadboard View of Power Measure Node
 <p align="center">
@@ -201,7 +195,9 @@ Since the sensor nodes are design to acquire data remotely, it is important to k
 #### Sensor Readings Export to Desktop (ThingsBoard Professional Edition)  
 ![](https://i.ibb.co/vsSGchX/IZZd-Dkbv-AVb-VUj3tl-VBET7-Vdcs-2-Oj-Fomuwcua9-Jea-PErrou-Fz9flkjva8o-UR0vt-P5-XCh-ZL1j8l-O0w-Rn2l-Dx-Vhk-u-M0-Tgr9-T6-ZBJhb7-Dka-JQr-Ds-HWidu3g-IU9b0b-Sa7t-WXTK-Yo.png)  
 #### Warning When Soil Moisture is not Optimal.
-![](https://i.ibb.co/nRF9XbQ/FYP-Sensor-Alarm-Warning.png)
+![](https://i.ibb.co/nRF9XbQ/FYP-Sensor-Alarm-Warning.png)  
+
+<br/>  
 
 ### <a name="relayRe"></a> Relay Node Results  
 #### Relay Off When Soil Moisture is Optimal
@@ -211,7 +207,11 @@ The relay will remain off when the soil moisture was above optimal.
 <br/>  
 
 #### Relay On When Soil Moisture is below Optimal
-![](https://i.ibb.co/2ZKWF2F/FYP-Relay-On.png)
+![](https://i.ibb.co/2ZKWF2F/FYP-Relay-On.png)  
+
+<br/>  
+
+
 ### <a name="serverRe"></a> Server Node Results  
 The server node acts like a middleman between the client nodes and the IoT platform (ThingsBoard).  
 
@@ -321,7 +321,9 @@ The battery life span (hrs) was calculated and tabulated in the figure below.
 ![](https://i.ibb.co/fttfKhn/pok-Ufz-NK9-Kyh8-OEbs-x-R5m-CV2-A8i-0a-IX5po-FATlj-Jw-EToo-F-MGrfq9-VVqt-Fw-OFGC1-Ks4z-S-o-BN5l-Hlqm-Uu-QYSJo-Jgdt-UGk-IYwrq-AEwby-Ve-dctl-QC-BNAd-MLw-LXt-RJn-A2-CE2c.png)
 10. Go back to Arduino IDE, go to Tools > Board, choose “LOLIN(WEMOS) D1 R2& mini” for server and “NodeMCU 1.0 (ESP-12E Module)” for clients.
 ![](https://i.ibb.co/rmZMHm3/i-Dke-Nqj-Jal38-Dyh-Dphg-ZA6y-AS8-Wd5-X2-H27-n-I5i-OKBw-PLOz-B8vx3-Wu-AAE-v-Kx-CXCERm8l-MD-x-Hzib8-Yd6-FTZEUHLXKMv-3-Nn-Sk-I-py8-Py-AK0-OReegq-ZHel-K8q-OHhwdz-KHC-KRA.png)
-11. At the same section, select the COM Port found at step 8.
+11. At the same section, select the COM Port found at step 8.  
+
+<br/>  
 
 ### <a name="setThingsBoard"></a>  Setup of ThingsBoard
 1. Sign up an account and log in at https://demo.thingsboard.io/login for demo version and https://cloud.thingsboard.io/login for professional version.
