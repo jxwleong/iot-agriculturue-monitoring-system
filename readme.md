@@ -6,23 +6,23 @@ This IoT monitoring system uses ESP8266 microcontroller such as NodeMCU and WeMo
 
 [comment]: # (Start of Contents)
 ## <a name="content"></a> Table of Contents  
-1. [Requirements for this repo](#repoReq)
-2. [Hardware setup](#hardSet)  
+1. [Requirements for this repo](#repo-req)
+2. [Hardware setup](#hard-set)  
    * [Client node](#client)  
      * [Sensor node](#sensor)  
      * [Relay node](#relay)  
    * [Server node](#server)  
-   * [Power measure node](#pmNode) 
-3. [Software setup](#softSet)  
+   * [Power measure node](#pm-node) 
+3. [Software setup](#soft-set)  
 4. [Results](#result)
-   * [Sensor node](#sensorRe)
-   * [Relay node](#relayRe)
-   * [Server node](#serverRe)
-   * [Power measure node](#pmRe)  
+   * [Sensor node](#sensor-node)
+   * [Relay node](#relay-node)
+   * [Server node](#server-node)
+   * [Power measure node](#pm-measure-node)  
 5. [References](#refer)  
 6. [Appendices](#appdix)  
-   * [Setup of Arduino IDE](#setArduino)
-   * [Setup of ThingsBoard](#setThingsBoard)  
+   * [Setup of Arduino IDE](#set-arduino)
+   * [Setup of ThingsBoard](#set-thingsboard)  
     
 [comment]: # (End of Contents)
 
@@ -30,7 +30,7 @@ This IoT monitoring system uses ESP8266 microcontroller such as NodeMCU and WeMo
 <br/>  
 
 [comment]: # (Start of Requirements for this repo)
-## <a name="repoReq"></a> Requirements for this repo  
+## <a name="repo-req"></a> Requirements for this repo  
 **Hardware**
 1. NodeMCU x 2
 2. WeMos D1 R2 x 2
@@ -67,7 +67,7 @@ For the schematic of this repo, please click [here](#BDFull).
  
  
 [comment]: # (Start of Hardware Setup)  
-## <a name="hardSet"></a> Hardware Setup
+## <a name="hard-set"></a> Hardware Setup
 The project consists of 4 hardware nodes which are sensor nodes, relay node, server node and power measure node (just to test power consumption). Figure below shows the fully integrated system for this project.  
 
 <a name="BDFull"></a>  
@@ -81,9 +81,9 @@ The project consists of 4 hardware nodes which are sensor nodes, relay node, ser
 <br/>  
 
 
-## <a name="softSet"></a> Software Setup   
+## <a name="soft-set"></a> Software Setup   
 ### Arduino IDE
-1. Setup the IDE by referring [Appendix for setup of Arduino IDE](#setArduino).
+1. Setup the IDE by referring [Appendix for setup of Arduino IDE](#set-arduino).
 2. Install the following libraries:  
 > - ArduinoJson ver 5.13.5
 > - ThingsBoard ver 0.2.0
@@ -91,13 +91,13 @@ The project consists of 4 hardware nodes which are sensor nodes, relay node, ser
 > - SDHT sensor library ver 2.0.0
 > - uMQTTBroker : Latest Version from https://github.com/martin-ger/uMQTTBroker, 27 Nov 2019  
 > - ACS712 arduino : Latest Version from https://github.com/rkoptev/ACS712-arduino, 27 Feb 2020
-3. Get the credentials such as TOKEN_ADDRESS [Step 4](#setThingsBoard), IP addresses of respective node (exclude power measure node) this [code](https://github.com/jason9829/IoTAgricultureMonitoringSystem/blob/31d813acc46cd80319684c57ef3c5fe5e4891621/PrototypeAndTestCode/Wireless%20Network%20(server%20and%20client)/getIpAddress/getIpAddress.ino) and wifi credentials.  
+3. Get the credentials such as TOKEN_ADDRESS [Step 4](#set-thingsboard), IP addresses of respective node (exclude power measure node) this [code](https://github.com/jason9829/IoTAgricultureMonitoringSystem/blob/31d813acc46cd80319684c57ef3c5fe5e4891621/PrototypeAndTestCode/Wireless%20Network%20(server%20and%20client)/getIpAddress/getIpAddress.ino) and wifi credentials.  
 4. Upload the codes to respective node.  
 
 <br/>  
 
 ### ThingsBoard
-1. Setup the ThingsBoard dashboard by referring [Appendix for setup of ThingsBoard](#setThingsBoard), the setup should look like figure below.
+1. Setup the ThingsBoard dashboard by referring [Appendix for setup of ThingsBoard](#set-thingsboard), the setup should look like figure below.
 ![](https://i.ibb.co/M8qm8s5/FYP-Things-Board-Full-Dashboard.png)
 2. Setup the rule engine of the ThingsBoard as shown below.
 ![](https://i.ibb.co/pXJvH0N/ny9fz-Nefm3-OMo-Gx4v-Wu-W46-FNu0h-Zx38-Kq-Ch-KBbx01zo5-Yj-Xg-Fv-Bob-Kjvm088-FSPyp8v7-Gvfd-BUW4p-U-Sl-Ul-NMD7-Wu-Wvu-J8-Eo-w-KXF-Pr4q-Pav-D7q-D0nxr-FLPT1v-LYEvb-ml-V4c.png)
@@ -166,7 +166,7 @@ The server node was given several tasks when the system is running:
 <br/>  
 
 
-### <a name="pmNode"></a> Power Measure Node 
+### <a name="pm-node"></a> Power Measure Node 
 Since the sensor nodes are design to acquire data remotely, it is important to know the power consumption of the sensor nodes. With the power consumptions of the sensor nodes, the battery life span can be determined. Moreover, suitable energy harvesting system can be determined for recharge the battery of sensor nodes. Thus, this node is created just to test the power consumption (Will not used in the field).  
  
 
@@ -189,7 +189,7 @@ Since the sensor nodes are design to acquire data remotely, it is important to k
 
 [comment]: # (Start of Results)
 ## <a name="result"></a> Results     
-### <a name="sensorRe"></a> Sensor Node Results   
+### <a name="sensor-node"></a> Sensor Node Results   
 #### Sensor Readings on ThingsBoard's Dashboard  
 ![](https://i.ibb.co/DVXSWKh/Result-Sensor-Data-on-Things-Board.png)  
 #### Sensor Readings Export to Desktop (ThingsBoard Professional Edition)  
@@ -199,7 +199,7 @@ Since the sensor nodes are design to acquire data remotely, it is important to k
 
 <br/>  
 
-### <a name="relayRe"></a> Relay Node Results  
+### <a name="relay-node"></a> Relay Node Results  
 #### Relay Off When Soil Moisture is Optimal
 The relay will remain off when the soil moisture was above optimal.
 ![](https://i.ibb.co/TY7pn7B/FYP-Relay-Off.png)  
@@ -212,12 +212,12 @@ The relay will remain off when the soil moisture was above optimal.
 <br/>  
 
 
-### <a name="serverRe"></a> Server Node Results  
+### <a name="server-node"></a> Server Node Results  
 The server node acts like a middleman between the client nodes and the IoT platform (ThingsBoard).  
 
 <br/>  
 
-### <a name="pmRe"></a> Power Measure Node Results  
+### <a name="pm-measure-node"></a> Power Measure Node Results  
 #### Solar Panel Current, Voltage and Power Table  
 <p align="center">
      <img src="https://i.ibb.co/wsZhFtN/FYP-Solar-Charging-Table.png" height = "360" width="540">
@@ -302,7 +302,7 @@ The battery life span (hrs) was calculated and tabulated in the figure below.
 
 [comment]: # (Start of Appendices)
 ## <a name="appdix"></a>  Appendices  
-### <a name="setArduino"></a>  Setup of Arduino IDE
+### <a name="set-arduino"></a>  Setup of Arduino IDE
 1. Download and install Arduino IDE from https://www.arduino.cc/en/main/software.
 2. Open Arduino IDE, go to File > Preferences.  
 ![](https://i.ibb.co/7SpPr2T/G7-SUBSht-Kmu-Y-n-JO30n-Cfy-Sinh-MHAllbr-S8odn-WEu-Jngc-Gs-AKj-Is-Ey-V2nx3-T2-QB8mn8-Of-Hc-W1-A8-Wge27iqvzmz-W3-GSn6-Zd8-Ccul-RUa-U.png)
@@ -325,7 +325,7 @@ The battery life span (hrs) was calculated and tabulated in the figure below.
 
 <br/>  
 
-### <a name="setThingsBoard"></a>  Setup of ThingsBoard
+### <a name="set-thingsboard"></a>  Setup of ThingsBoard
 1. Sign up an account and log in at https://demo.thingsboard.io/login for demo version and https://cloud.thingsboard.io/login for professional version.
 2. Go to DEVICES  then click on the ‘+’ sign on the bottom right and select ‘Add new device’.  
 ![](https://i.ibb.co/dJYp23W/n-CEr-ZIjo-Pj7ap96-D3lo-Zmg-X5-WH-Ee5-YNqxdz-Cfy-BL7-VGYr-Kdk3-Rh-Hi9x-EX2-SCZNk4-Ua-Pl-Td2u-Nw3-A6zj-Xf-MJPRq01-Fy-FDh-Juj-rd-1-PI25m4k-Xk-OX9r5-Vy-Ol-Qai-F5k0-Many-M.png)
