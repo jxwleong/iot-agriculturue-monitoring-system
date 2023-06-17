@@ -19,8 +19,9 @@ This IoT monitoring system uses ESP8266 microcontroller such as NodeMCU and WeMo
    * [Relay node](#relay-node)
    * [Server node](#server-node)
    * [Power measure node](#pm-measure-node)  
-5. [References](#refer)  
-6. [Appendices](#appdix)  
+5. [Future Enhancement](#future-enhancement)
+6. [References](#refer)  
+7. [Appendices](#appdix)  
    * [Setup of Arduino IDE](#set-arduino)
    * [Setup of ThingsBoard](#set-thingsboard)  
     
