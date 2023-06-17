@@ -63,7 +63,7 @@ For the schematic of this repo, please click [here](#BDFull).
 
 [comment]: # (End of Requirements for this repo)
 
-<br/>  
+<br/><br/>      
  
  
 [comment]: # (Start of Hardware Setup)  
@@ -78,7 +78,7 @@ The project consists of 4 hardware nodes which are sensor nodes, relay node, ser
 
 [Back to Contents](#content)   
 
-<br/>  
+<br/><br/>    
 
 
 ## <a name="soft-set"></a> Software Setup   
@@ -181,7 +181,7 @@ Since the sensor nodes are design to acquire data remotely, it is important to k
     
 [Back to Contents](#content)  
 
-<br/>  
+<br/><br/>    
 
 [comment]: # (End of Hardware Setup)
 
@@ -249,10 +249,17 @@ The battery life span (hrs) was calculated and tabulated in the figure below.
 
 [comment]: # (End of Results)  
 
-<br/>  
+<br/><br/>      
 
 
-[comment]: # (Start of References)
+## <a name="future-enhancement"></a> Future Enhancement
+1. **mplementation of Low-Power Communication Protocol**: The existing system relies on Wi-Fi for data communication, which, while reliable and ubiquitous, can be power-hungry. To optimize energy consumption, the integration of low-power wide-area network (LPWAN) technologies like LoRaWAN, Zigbee, or NB-IoT is recommended. These protocols are designed for long-range communication with minimal power usage, making them ideal for battery-operated IoT devices. Moreover, they provide sufficient data rates to transmit typical sensor data.
+2. **Expansion of Sensor Array**: In the present system, the sensors may be limited to basic parameters such as temperature, humidity, and soil moisture. By expanding the sensor array to include parameters like soil pH, nutrient content, light intensity, and carbon dioxide concentration, the system could provide a more comprehensive monitoring of plant health and environmental conditions. This could further allow the implementation of more sophisticated plant care algorithms, potentially improving plant growth and health outcomes.  
+
+<br/><br/>        
+
+[comment]: # (Start of References)  
+
 ## <a name="refer"></a> References    
 [1] Thakare, S. and Bhagat, P.H., 2018, June. Arduino-Based Smart Irrigation Using Sensors and ESP8266 WiFi Module. In 2018 Second International Conference on Intelligent Computing and Control Systems (ICICCS) (pp. 1-5). IEEE.
 
